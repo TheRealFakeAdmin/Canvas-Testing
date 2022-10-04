@@ -47,7 +47,7 @@ function getMousePos(canvas, evt) { // REMEMBER : This is like a percentage/scal
  * @param {bool|number} toFixed - `Number.prototype.toFixed` input
  * @returns {{x: (number|string), y: (number|string)}}
  */
-function getPosition(canvas, event, toFixed=false) {
+function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of getMousePos?
     let mp = getMousePos(canvas, event);
     let x, y;
     switch(toFixed) {
@@ -117,13 +117,13 @@ function Circle(x, y, radius) {
 }*/
 
 /**
- * 
- * @param x1
- * @param y1
- * @param x2
- * @param y2
+ * Draws circle using 2 points
+ * @param {number} x1 - Point 1 x-coord
+ * @param {number} y1 - Point 1 y-coord
+ * @param {number} x2 - Point 2 x-coord
+ * @param {number} y2 - Point 2 y-coord
  */
-function drawCircle(x1, y1, x2, y2) {
+function drawCircle(x1, y1, x2, y2) { // TODO : Handle i in array of Path2D
 
     let center = {
             x: (x1 + x2) / 2,
@@ -145,29 +145,26 @@ function drawCircle(x1, y1, x2, y2) {
 }
 
 
-/// handle mouse down    
-canvas.addEventListener('mousedown', (e) => {
-
+function _down(e) {
     /// get corrected mouse position and store as first point
     rect = canvas.getBoundingClientRect();
     x1 = e.clientX - rect.left;
     y1 = e.clientY - rect.top;
     isDown = true;
-})
 
-/// clear isDown flag to stop drawing
-canvas.addEventListener('mouseup', (e) => {
-    isDown = false;
-})
+    // nice looking stuff
+    let cv = getPosition(canvas, e, 0);
+    strc.innerText = `[${cv.x},${cv.y}]`;
+    msdn.innerText = "True";
+}
 
-/// draw ellipse from start point
-canvas.addEventListener('mousemove', (e) => {
-
+function _move(e) {
+    // real work
     rect = canvas.getBoundingClientRect();
     x2 = e.clientX - rect.left;
     y2 = e.clientY - rect.top;
 
-    // Display Coords
+    /// Display Coords
     crds.innerText = `[${x2},${y2}]`;
 
 
@@ -181,30 +178,46 @@ canvas.addEventListener('mousemove', (e) => {
     /// draw ellipse
     drawCircle(x1, y1, x2, y2);
 
-})
+    // nice looking stuff
+    let cv = getMousePos(canvas, e, 0);
+    crds.innerText = `[${cv.x},${cv.y}]`;
+}
+
+function _up(e) {
+    if (!isDown) return; // if already up, don't do anything
+
+    // real work
+    isDown = false; // clear isDown flag to stop drawing
+
+    // nice looking stuff
+    let cv = getMousePos(canvas, e, 0);
+    endc.innerText = `[${cv.x},${cv.y}]`;
+    msdn.innerText = 'False';
+}
+
+
+
+/// draw ellipse from start point
+
 
 
 // Event Listeners
 
-canvas.addEventListener('mouseleave', (e) => {
-    isDown = false;
+canvas.addEventListener('mousedown', (e) => { // handle mouse down
+    _down(e);
 })
 
-canvas.addEventListener('mousedown', (e) => {
-    let cv = getPosition(canvas, e, 0);
-    strc.innerText = `[${cv.x},${cv.y}]`;
-    msdn.innerText = "True";
+canvas.addEventListener('mousemove', (e) => { // handle mouse move
+    _move(e);
 })
 
-canvas.addEventListener('mouseup', (e) => {
-    let cv = getMousePos(canvas, e, 0);
-    endc.innerText = `[${cv.x},${cv.y}]`;
-    msdn.innerText = 'False';
+
+canvas.addEventListener('mouseup', (e) => { // handle mouse up
+    _up(e);
 })
 
-canvas.addEventListener('mousemove', (e) => {
-    let cv = getMousePos(canvas, e, 0);
-    crds.innerText = `[${cv.x},${cv.y}]`;
+canvas.addEventListener('mouseleave', (e) => { // handle mouse leave (backup for mouseup)
+    _up(e);
 })
 
 
