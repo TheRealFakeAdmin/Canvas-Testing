@@ -2,7 +2,6 @@
 
 const canvas = document.getElementById('canvas'); // The Canvas
 
-let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
 const ctx = canvas.getContext("2d");
 
 // Text bellow the canvas
@@ -30,13 +29,14 @@ canvas.height = 450 * 2; // Height of the canvas
 
 // Setup Functions
 
-function getMousePos(canvas, evt) { // REMEMBER : This is like a percentage/scale
+function getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
+    let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
 
     return {
-        x: (evt.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
-        y: (evt.clientY - rect.top) * scaleY     // been adjusted to be relative to element
+        x: (event.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
+        y: (event.clientY - rect.top) * scaleY     // been adjusted to be relative to element
     }
 }
 
@@ -44,7 +44,7 @@ function getMousePos(canvas, evt) { // REMEMBER : This is like a percentage/scal
  * Get position of mouse relative to Canvas
  * @param canvas - The target canvas
  * @param {Event} event - Event input
- * @param {bool|number} toFixed - `Number.prototype.toFixed` input
+ * @param {boolean|number} toFixed - `Number.prototype.toFixed` input
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of getMousePos?
@@ -138,31 +138,48 @@ function drawCircle(x1, y1, x2, y2) { // TODO : Handle i in array of Path2D
 
     let c = Circle(center.x, center.y, radius);
 
-    //circles.push(c);
+    circles[0] = c; // will be push in future
 
     ctx.strokeStyle = "#f8b31f";
     ctx.stroke(c, "nonzero");
 }
 
+/**
+ * Clears canvas then loops through all circles to re-draw
+ */
+function reDraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for(let i = 0; i < circles.length; i++) {
+        ctx.strokeStyle = "#f8b31f";
+        ctx.stroke(circles[i], "nonzero");
+    }
+}
 
 function _down(e) {
     /// get corrected mouse position and store as first point
-    rect = canvas.getBoundingClientRect();
+    /*rect = canvas.getBoundingClientRect();
     x1 = e.clientX - rect.left;
-    y1 = e.clientY - rect.top;
+    y1 = e.clientY - rect.top;*/
+    let pos = getPosition(canvas, e);
+    x1 = pos.x;
+    y1 = pos.y;
+
     isDown = true;
 
     // nice looking stuff
-    let cv = getPosition(canvas, e, 0);
-    strc.innerText = `[${cv.x},${cv.y}]`;
+    strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
     msdn.innerText = "True";
 }
 
 function _move(e) {
     // real work
-    rect = canvas.getBoundingClientRect();
+    /*rect = canvas.getBoundingClientRect();
     x2 = e.clientX - rect.left;
-    y2 = e.clientY - rect.top;
+    y2 = e.clientY - rect.top;*/
+
+    let pos = getPosition(canvas, e);
+    x2 = pos.x;
+    y2 = pos.y;
 
     /// Display Coords
     crds.innerText = `[${x2},${y2}]`;
