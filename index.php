@@ -6,7 +6,7 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <style>
             #canvas {
-                background: url("00190.png");
+                background: url("images/20190328T204207S996_pol_iofL2pan.png");
                 background-size: 100%;
             }
         </style>

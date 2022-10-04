@@ -17,19 +17,19 @@ let x1,                 /// start point
     y1,
     x2,                 /// end point
     y2,
-    i = -1,
+    i = 0,
     isDown = false;     /// if mouse button is down
 
 
 // Setup Canvas
 
-canvas.width = 450 * 2; // Width of the canvas
-canvas.height = 450 * 2; // Height of the canvas
+canvas.width = 450; // Width of the canvas
+canvas.height = 450; // Height of the canvas
 
 
 // Setup Functions
 
-function getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
+function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
     let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
@@ -48,7 +48,7 @@ function getMousePos(canvas, event) { // REMEMBER : This is like a percentage/sc
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of getMousePos?
-    let mp = getMousePos(canvas, event);
+    let mp = _getMousePos(canvas, event);
     let x, y;
     switch(toFixed) {
         case false:
@@ -75,46 +75,12 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
  * @constructor
  */
 function Circle(x, y, radius) {
-    let c = new Path2D();
-    c.arc(x, y, radius, 0, Math.PI * 2);
-    return c;
+    let crcl = new Path2D();
+    crcl.arc(x, y, radius, 0, Math.PI * 2);
+    return crcl;
 }
 
 
-/* Src: https://stackoverflow.com/questions/21594756/drawing-circle-ellipse-on-html5-canvas-using-mouse-events */
-
-/*function drawEllipse(x1, y1, x2, y2) {
-
-    let radiusX = (x2 - x1) * 0.5,   /// radius for x based on input
-        radiusY = (y2 - y1) * 0.5,   /// radius for y based on input
-        centerX = x1 + radiusX,      /// calc center
-        centerY = y1 + radiusY,
-        step = 0.01,                 /// resolution of ellipse
-        a = step,                    /// counter
-        pi2 = Math.PI * 2 - step;    /// end angle
-
-    let thing = (radiusX ^ 2) + (radiusY) ^ 2;
-
-    console.log(thing);
-
-    /// start a new path
-    ctx.beginPath();
-
-    /// set start point at angle 0
-    ctx.moveTo(centerX + thing * Math.cos(0),
-        centerY + thing * Math.sin(0));
-
-    /// create the ellipse    
-    for (; a < pi2; a += step) {
-        ctx.lineTo(centerX + radiusX * Math.cos(a),
-            centerY + radiusY * Math.sin(a));
-    }
-
-    /// close it and stroke it for demo
-    ctx.closePath();
-    ctx.strokeStyle = '#000';
-    ctx.stroke();
-}*/
 
 /**
  * Draws circle using 2 points
@@ -122,8 +88,9 @@ function Circle(x, y, radius) {
  * @param {number} y1 - Point 1 y-coord
  * @param {number} x2 - Point 2 x-coord
  * @param {number} y2 - Point 2 y-coord
+ * @param {number} i - Current index of `circles`
  */
-function drawCircle(x1, y1, x2, y2) { // TODO : Handle i in array of Path2D
+function drawCircle(x1, y1, x2, y2, i) {
 
     let center = {
             x: (x1 + x2) / 2,
@@ -136,12 +103,11 @@ function drawCircle(x1, y1, x2, y2) { // TODO : Handle i in array of Path2D
 
     rdus.innerText = radius.toFixed(3);
 
-    let c = Circle(center.x, center.y, radius);
+    circles[i] = Circle(center.x, center.y, radius);
 
-    circles[0] = c; // will be push in future
-
-    ctx.strokeStyle = "#f8b31f";
-    ctx.stroke(c, "nonzero");
+    //ctx.strokeStyle = "#f8b31f";
+    //ctx.stroke(circles[i], "nonzero");
+    reDraw();
 }
 
 /**
@@ -149,13 +115,25 @@ function drawCircle(x1, y1, x2, y2) { // TODO : Handle i in array of Path2D
  */
 function reDraw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for(let i = 0; i < circles.length; i++) {
+    for(let j = 0; j < circles.length; j++) {
+        if (!(circles[j] instanceof Path2D)) continue;
+
         ctx.strokeStyle = "#f8b31f";
-        ctx.stroke(circles[i], "nonzero");
+        ctx.lineWidth = 2;
+        ctx.fillStyle = "#f8b31f33";
+        ctx.stroke(circles[j], "nonzero");
+        ctx.fill(circles[j], "nonzero");
     }
 }
 
+/**
+ * Run when mouse button is pressed in canvas
+ * @param {Event} e
+ * @private
+ */
 function _down(e) {
+    if (isDown) console.log("how?");
+
     /// get corrected mouse position and store as first point
     /*rect = canvas.getBoundingClientRect();
     x1 = e.clientX - rect.left;
@@ -171,6 +149,11 @@ function _down(e) {
     msdn.innerText = "True";
 }
 
+/**
+ * Run when mouse is moved on canvas
+ * @param {Event} e
+ * @private
+ */
 function _move(e) {
     // real work
     /*rect = canvas.getBoundingClientRect();
@@ -187,29 +170,39 @@ function _move(e) {
 
     if (!isDown) return;
 
-    /// clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    /*/// clear canvas
+    reDraw();*/
 
     endc.innerText = `[${x2},${y2}]`;
 
     /// draw ellipse
-    drawCircle(x1, y1, x2, y2);
+    drawCircle(x1, y1, x2, y2, i);
 
     // nice looking stuff
-    let cv = getMousePos(canvas, e, 0);
+    let cv = _getMousePos(canvas, e, 0);
     crds.innerText = `[${cv.x},${cv.y}]`;
 }
 
+/**
+ * Run when mouse button is released in canvas (or exiting canvas)
+ * @param {Event} e
+ * @private
+ */
 function _up(e) {
     if (!isDown) return; // if already up, don't do anything
 
     // real work
     isDown = false; // clear isDown flag to stop drawing
 
+    reDraw();
+
     // nice looking stuff
-    let cv = getMousePos(canvas, e, 0);
+    let cv = _getMousePos(canvas, e, 0);
     endc.innerText = `[${cv.x},${cv.y}]`;
     msdn.innerText = 'False';
+
+    i = circles.length;
+    void(0);
 }
 
 
@@ -220,22 +213,14 @@ function _up(e) {
 
 // Event Listeners
 
-canvas.addEventListener('mousedown', (e) => { // handle mouse down
-    _down(e);
-})
+canvas.addEventListener('mousedown', _down);
 
-canvas.addEventListener('mousemove', (e) => { // handle mouse move
-    _move(e);
-})
+canvas.addEventListener('mousemove', _move);
 
 
-canvas.addEventListener('mouseup', (e) => { // handle mouse up
-    _up(e);
-})
+canvas.addEventListener('mouseup', _up);
 
-canvas.addEventListener('mouseleave', (e) => { // handle mouse leave (backup for mouseup)
-    _up(e);
-})
+canvas.addEventListener('mouseleave', _up);
 
 
 /* 
