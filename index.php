@@ -22,6 +22,7 @@
             Radius:       <i id="radius">0.000</i><br>
             Mouse Down:   <i id="mouse-down">False</i>
         </div>
+        <!--<button onclick="circles = circles.splice(0,circles.length); reDraw()">Reset</button>-->
         
         <script src="canvas.js"></script>
     </body>

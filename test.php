@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
-        <style>
+        <title>Test Screen</title>
+        <!--<style>
             hidden {
                 display: none;
             }
-        </style>
+        </style>-->
     </head>
     <body>
 
         <p>Image to use:</p>
-        <img id="scream" width="220" height="277" src="img_the_scream.jpg" alt="The Scream">
+        <img id="scream" width="220" height="277" src="images/img_the_scream.jpg" alt="The Scream">
 
         <p>Canvas:</p>
         <div id="main">

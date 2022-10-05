@@ -17,6 +17,8 @@ let x1,                 /// start point
     y1,
     x2,                 /// end point
     y2,
+    center,
+    radius,
     i = 0,
     isDown = false;     /// if mouse button is down
 
@@ -92,18 +94,19 @@ function Circle(x, y, radius) {
  */
 function drawCircle(x1, y1, x2, y2, i) {
 
-    let center = {
+    center = {
             x: (x1 + x2) / 2,
             y: (y1 + y2) / 2
         }
 
-    let radius = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
+    radius = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
 
     console.log("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
 
     rdus.innerText = radius.toFixed(3);
 
-    circles[i] = Circle(center.x, center.y, radius);
+    //circles[i] = Circle(center.x, center.y, radius);
+    circles[i] = {x: center.x, y: center.y, d: (radius * 2), ts: Date.now()};
 
     //ctx.strokeStyle = "#f8b31f";
     //ctx.stroke(circles[i], "nonzero");
@@ -114,15 +117,16 @@ function drawCircle(x1, y1, x2, y2, i) {
  * Clears canvas then loops through all circles to re-draw
  */
 function reDraw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let crcl;
+    clearCanvas();
     for(let j = 0; j < circles.length; j++) {
-        if (!(circles[j] instanceof Path2D)) continue;
-
+        if (circles[j] == null) continue;
+        crcl = Circle(circles[j].x, circles[j].y, (circles[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
         ctx.strokeStyle = "#f8b31f";
         ctx.lineWidth = 2;
         ctx.fillStyle = "#f8b31f33";
-        ctx.stroke(circles[j], "nonzero");
-        ctx.fill(circles[j], "nonzero");
+        ctx.stroke(crcl, "nonzero");
+        ctx.fill(crcl, "nonzero");
     }
 }
 
@@ -133,6 +137,8 @@ function reDraw() {
  */
 function _down(e) {
     if (isDown) console.log("how?");
+
+    i = circles.length;
 
     /// get corrected mouse position and store as first point
     /*rect = canvas.getBoundingClientRect();
@@ -205,6 +211,9 @@ function _up(e) {
     void(0);
 }
 
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
 
 
 /// draw ellipse from start point
@@ -221,6 +230,8 @@ canvas.addEventListener('mousemove', _move);
 canvas.addEventListener('mouseup', _up);
 
 canvas.addEventListener('mouseleave', _up);
+
+reDraw();
 
 
 /* 
