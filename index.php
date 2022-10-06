@@ -18,11 +18,12 @@
         <div>
             Coords:       <i id="coords">[0,0]</i><br>
             Start Coords: <i id="start-coords">[0,0]</i><br>
+            Center Coords: <i id="center-coords">[0,0]</i><br>
             End Coords:   <i id="end-coords">[0,0]</i><br>
             Radius:       <i id="radius">0.000</i><br>
             Mouse Down:   <i id="mouse-down">False</i>
         </div>
-        <!--<button onclick="circles = circles.splice(0,circles.length); reDraw()">Reset</button>-->
+        <button onclick="marks.length = 0; reDraw();">Reset</button>
         
         <script src="canvas.js"></script>
     </body>

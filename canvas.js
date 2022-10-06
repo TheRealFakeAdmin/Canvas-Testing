@@ -1,3 +1,7 @@
+// Settings
+
+const minCraterSize = 18;
+
 // Setup Variables
 
 const canvas = document.getElementById('canvas'); // The Canvas
@@ -7,11 +11,12 @@ const ctx = canvas.getContext("2d");
 // Text bellow the canvas
 const crds = document.getElementById('coords');
 const strc = document.getElementById('start-coords');
+const cntr = document.getElementById('center-coords');
 const endc = document.getElementById('end-coords');
 const rdus = document.getElementById('radius');
 const msdn = document.getElementById('mouse-down');
 
-const circles = []; // Array of all the circles
+const marks = []; // Array of all the marks
 
 let x1,                 /// start point
     y1,
@@ -31,6 +36,13 @@ canvas.height = 450; // Height of the canvas
 
 // Setup Functions
 
+/**
+ *
+ * @param canvas
+ * @param event
+ * @returns {{x: number, y: number}}
+ * @private
+ */
 function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
     let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
@@ -90,7 +102,7 @@ function Circle(x, y, radius) {
  * @param {number} y1 - Point 1 y-coord
  * @param {number} x2 - Point 2 x-coord
  * @param {number} y2 - Point 2 y-coord
- * @param {number} i - Current index of `circles`
+ * @param {number} i - Current index of `marks`
  */
 function drawCircle(x1, y1, x2, y2, i) {
 
@@ -101,33 +113,48 @@ function drawCircle(x1, y1, x2, y2, i) {
 
     radius = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
 
+    cntr.innerText = `[${center.x},${center.y}]`;
     console.log("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
 
     rdus.innerText = radius.toFixed(3);
 
-    //circles[i] = Circle(center.x, center.y, radius);
-    circles[i] = {x: center.x, y: center.y, d: (radius * 2), ts: Date.now()};
+    //marks[i] = Circle(center.x, center.y, radius);
+    marks[i] = {x: center.x, y: center.y, d: (radius * 2), ts: Date.now()};
 
     //ctx.strokeStyle = "#f8b31f";
-    //ctx.stroke(circles[i], "nonzero");
+    //ctx.stroke(marks[i], "nonzero");
     reDraw();
 }
 
 /**
- * Clears canvas then loops through all circles to re-draw
+ * Clears canvas then loops through all marks to re-draw
  */
 function reDraw() {
     let crcl;
     clearCanvas();
-    for(let j = 0; j < circles.length; j++) {
-        if (circles[j] == null) continue;
-        crcl = Circle(circles[j].x, circles[j].y, (circles[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
-        ctx.strokeStyle = "#f8b31f";
+    for(let j = 0; j < marks.length; j++) {
+        if (marks[j] == null) continue;
+        crcl = Circle(marks[j].x, marks[j].y, (marks[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
         ctx.lineWidth = 2;
-        ctx.fillStyle = "#f8b31f33";
+        if ((marks[j].d) < minCraterSize) {
+            ctx.strokeStyle = "#f00";
+            ctx.fillStyle = "#f003";
+        } else {
+            ctx.strokeStyle = "#f8b31f";
+            ctx.fillStyle = "#f8b31f33";
+        }
         ctx.stroke(crcl, "nonzero");
         ctx.fill(crcl, "nonzero");
     }
+}
+
+/**
+ * Deletes selected mark
+ * @param i - index of mark
+ */
+function delMark(i) {
+    marks.splice(i, 1);
+    reDraw();
 }
 
 /**
@@ -136,9 +163,12 @@ function reDraw() {
  * @private
  */
 function _down(e) {
-    if (isDown) console.log("how?");
+    if (isDown) {
+        console.log("how?");
+        isDown = false;
+    }
 
-    i = circles.length;
+    i = marks.length;
 
     /// get corrected mouse position and store as first point
     /*rect = canvas.getBoundingClientRect();
@@ -185,7 +215,7 @@ function _move(e) {
     drawCircle(x1, y1, x2, y2, i);
 
     // nice looking stuff
-    let cv = _getMousePos(canvas, e, 0);
+    let cv = _getMousePos(canvas, e);
     crds.innerText = `[${cv.x},${cv.y}]`;
 }
 
@@ -195,19 +225,22 @@ function _move(e) {
  * @private
  */
 function _up(e) {
-    if (!isDown) return; // if already up, don't do anything
+    if (!isDown || marks[i] == undefined) return; // if already up, don't do anything
 
     // real work
     isDown = false; // clear isDown flag to stop drawing
+    if (marks[i].d < minCraterSize) {
+        delMark(i);
+    }
 
     reDraw();
 
     // nice looking stuff
-    let cv = _getMousePos(canvas, e, 0);
+    let cv = _getMousePos(canvas, e);
     endc.innerText = `[${cv.x},${cv.y}]`;
     msdn.innerText = 'False';
 
-    i = circles.length;
+    i = marks.length;
     void(0);
 }
 
@@ -222,14 +255,21 @@ function clearCanvas() {
 
 // Event Listeners
 
+addEventListener('click', () => {
+    isDown = false;
+    msdn.innerText = 'False';
+}); // Prevents fast-clicks from keeping isDown true
+
 canvas.addEventListener('mousedown', _down);
 
 canvas.addEventListener('mousemove', _move);
 
 
-canvas.addEventListener('mouseup', _up);
+addEventListener('mouseup', _up);
 
-canvas.addEventListener('mouseleave', _up);
+addEventListener('mouseleave', _up);
+
+addEventListener('mouseout', _up);
 
 reDraw();
 
