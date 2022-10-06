@@ -37,10 +37,10 @@ canvas.height = 450; // Height of the canvas
 // Setup Functions
 
 /**
- *
- * @param canvas
- * @param event
- * @returns {{x: number, y: number}}
+ * Gets scaled mouse position inside canvas.
+ * @param {HTMLCanvasElement} canvas - Target canvas
+ * @param {Event} event - Input event
+ * @returns {{x: number, y: number}} - Scaled coords
  * @private
  */
 function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
@@ -56,12 +56,12 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
 
 /**
  * Get position of mouse relative to Canvas
- * @param canvas - The target canvas
+ * @param {HTMLCanvasElement} canvas - Target canvas
  * @param {Event} event - Event input
  * @param {boolean|number} toFixed - `Number.prototype.toFixed` input
  * @returns {{x: (number|string), y: (number|string)}}
  */
-function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of getMousePos?
+function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of _getMousePos?
     let mp = _getMousePos(canvas, event);
     let x, y;
     switch(toFixed) {
@@ -82,13 +82,13 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
 
 /**
  * Creates a circle Path2D
- * @param {number} x - x-position
- * @param {number} y - y-position
+ * @param {number} x - Center x-position
+ * @param {number} y - Center y-position
  * @param {number} radius - Radius of the circle
- * @returns {Path2D}
+ * @returns {Path2D} - Circle wrapped in a Path2D // FIXME : is it wrapped?
  * @constructor
  */
-function Circle(x, y, radius) {
+function Circle(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
     let crcl = new Path2D();
     crcl.arc(x, y, radius, 0, Math.PI * 2);
     return crcl;
@@ -118,12 +118,7 @@ function drawCircle(x1, y1, x2, y2, i) {
 
     rdus.innerText = radius.toFixed(3);
 
-    //marks[i] = Circle(center.x, center.y, radius);
-    marks[i] = {x: center.x, y: center.y, d: (radius * 2), ts: Date.now()};
-
-    //ctx.strokeStyle = "#f8b31f";
-    //ctx.stroke(marks[i], "nonzero");
-    reDraw();
+    addCircle(center.x, center.y, (radius * 2), i);
 }
 
 /**
@@ -150,10 +145,25 @@ function reDraw() {
 
 /**
  * Deletes selected mark
- * @param i - index of mark
+ * @param {number} i - index of mark
  */
 function delMark(i) {
     marks.splice(i, 1);
+    reDraw();
+}
+
+/**
+ * Creates a circle mark then re-draws the canvas
+ * @param {number} x - x-coord
+ * @param {number} y - y-coord
+ * @param {number} d - diameter
+ * @param {number} [index] - index of circle
+ */
+function addCircle(x, y, d, index) {
+    if (typeof index === "number" && 0 <= index <= marks.length)
+        marks[index] = {x: x, y: y, d: d, t: 0, ts: Date.now()};
+    else
+        marks.push({x: x, y: y, d: d, t: 0, ts: Date.now()});
     reDraw();
 }
 
@@ -163,9 +173,10 @@ function delMark(i) {
  * @private
  */
 function _down(e) {
-    if (isDown) {
-        console.log("how?");
-        isDown = false;
+    if (isDown || e.button !== 0) { // left/main click === e.button of 0
+        console.debug("176");
+        _up(e);
+        return;
     }
 
     i = marks.length;
@@ -225,7 +236,7 @@ function _move(e) {
  * @private
  */
 function _up(e) {
-    if (!isDown || marks[i] == undefined) return; // if already up, don't do anything
+    if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
 
     // real work
     isDown = false; // clear isDown flag to stop drawing
@@ -270,6 +281,7 @@ addEventListener('mouseup', _up);
 addEventListener('mouseleave', _up);
 
 addEventListener('mouseout', _up);
+
 
 reDraw();
 
