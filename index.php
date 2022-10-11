@@ -6,7 +6,7 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <style>
             #canvas {
-                background: url("images/20190328T204207S996_pol_iofL2pan.png");
+                background: url("images/00181.png");
                 background-size: 100%;
             }
         </style>
@@ -21,10 +21,16 @@
             Center Coords: <i id="center-coords">[0,0]</i><br>
             End Coords:   <i id="end-coords">[0,0]</i><br>
             Radius:       <i id="radius">0.000</i><br>
-            Mouse Down:   <i id="mouse-down">False</i>
+            Mouse Down:   <i id="mouse-down">False</i><br>
+            Data: <p id="data"><p>
         </div>
-        <button onclick="marks.length = 0; reDraw();">Reset</button>
-        
+        <div>
+            <button onclick="_send()">Send</button>
+            <button onclick="_receive()">Receive</button><br>
+            <button onclick="delLastMark();">Undo</button>
+            <button onclick="marks.length = 0; reDraw();">Reset</button>
+        </div>
+
         <script src="canvas.js"></script>
     </body>
 </html>

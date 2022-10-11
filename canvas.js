@@ -44,6 +44,7 @@ canvas.height = 450; // Height of the canvas
  * @private
  */
 function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
+    console.debug(`_getMousePos`);
     let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
@@ -62,6 +63,7 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of _getMousePos?
+    console.debug('getPosition');
     let mp = _getMousePos(canvas, event);
     let x, y;
     switch(toFixed) {
@@ -89,6 +91,7 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
  * @constructor
  */
 function Circle(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
+    console.debug('Circle');
     let crcl = new Path2D();
     crcl.arc(x, y, radius, 0, Math.PI * 2);
     return crcl;
@@ -105,6 +108,7 @@ function Circle(x, y, radius) { // TODO : Re-Think what is considered a private 
  * @param {number} i - Current index of `marks`
  */
 function drawCircle(x1, y1, x2, y2, i) {
+    console.debug('drawCircle');
 
     center = {
             x: (x1 + x2) / 2,
@@ -125,6 +129,7 @@ function drawCircle(x1, y1, x2, y2, i) {
  * Clears canvas then loops through all marks to re-draw
  */
 function reDraw() {
+    console.debug('reDraw');
     let crcl;
     clearCanvas();
     for(let j = 0; j < marks.length; j++) {
@@ -148,18 +153,25 @@ function reDraw() {
  * @param {number} i - index of mark
  */
 function delMark(i) {
+    console.debug('delMark');
     marks.splice(i, 1);
     reDraw();
 }
 
+function delLastMark() {
+    console.debug('delLastMark');
+    delMark(marks.length - 1);
+}
+
 /**
  * Creates a circle mark then re-draws the canvas
- * @param {number} x - x-coord
- * @param {number} y - y-coord
+ * @param {number} x - center x-coord
+ * @param {number} y - center y-coord
  * @param {number} d - diameter
  * @param {number} [index] - index of circle
  */
 function addCircle(x, y, d, index) {
+    console.debug('addCircle');
     if (typeof index === "number" && 0 <= index <= marks.length)
         marks[index] = {x: x, y: y, d: d, t: 0, ts: Date.now()};
     else
@@ -173,6 +185,7 @@ function addCircle(x, y, d, index) {
  * @private
  */
 function _down(e) {
+    console.debug('_down');
     if (isDown || e.button !== 0) { // left/main click === e.button of 0
         console.debug("176");
         _up(e);
@@ -202,6 +215,7 @@ function _down(e) {
  * @private
  */
 function _move(e) {
+    console.debug('_move');
     // real work
     /*rect = canvas.getBoundingClientRect();
     x2 = e.clientX - rect.left;
@@ -236,6 +250,7 @@ function _move(e) {
  * @private
  */
 function _up(e) {
+    console.debug('_up');
     if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
 
     // real work
@@ -252,11 +267,42 @@ function _up(e) {
     msdn.innerText = 'False';
 
     i = marks.length;
+    _send();
     void(0);
 }
 
 function clearCanvas() {
+    console.debug('clearCanvas');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function _send() {
+    console.debug('_send');
+    let data = `marks=${JSON.stringify(marks)}`;
+    let http = new XMLHttpRequest();
+
+    http.addEventListener('readystatechange', (r) => {
+        let rsp = r.target;
+        if (rsp.readyState === 4 && rsp.status === 200) {
+            document.getElementById('data').innerText = rsp.responseText;
+        }
+    })
+    http.open('POST', 'post.php');
+    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    http.send(data);
+}
+
+function _receive() {
+    console.debug('_receive');
+    let http = new XMLHttpRequest();
+    http.addEventListener('readystatechange', (r) => {
+        let rsp = r.target;
+        if (rsp.readyState === 4 && rsp.status === 200) {
+            document.getElementById('data').innerText = rsp.responseText;
+        }
+    })
+    http.open('GET', 'request.php');
+    http.send();
 }
 
 
@@ -267,6 +313,7 @@ function clearCanvas() {
 // Event Listeners
 
 addEventListener('click', () => {
+    console.debug('click');
     isDown = false;
     msdn.innerText = 'False';
 }); // Prevents fast-clicks from keeping isDown true

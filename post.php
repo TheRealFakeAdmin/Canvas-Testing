@@ -1,0 +1,1 @@
+Marks: <?php echo $_POST["marks"]; ?>
