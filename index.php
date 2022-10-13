@@ -6,7 +6,7 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <style>
             #canvas {
-                background: url("images/moon-or-something.jpg");
+                background: url("images/moon-tutorial-2.png");
                 background-size: 100%;
             }
         </style>
