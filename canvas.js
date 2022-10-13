@@ -37,6 +37,67 @@ canvas.width = 450; // Width of the canvas
 canvas.height = 450; // Height of the canvas
 
 
+// Setup Classes
+
+/**
+ * Makes all circles the same layout
+ */
+class Circle {
+    /**
+     * Generates a circle representation
+     * @param x - Center x-coord
+     * @param y - Center y-coord
+     * @param radius - radius of the circle
+     */
+    constructor(x, y, radius) {
+        this.timestamp = Date.now();
+        this.type = 0
+
+        this.x = x;
+        this.y = y;
+
+        this.d = radius * 2;
+        this.r = radius;
+    }
+}
+
+/**
+ * @example new Line(2, 5, 8, 13)
+ */
+class Line {
+
+    constructor(x1, y1, x2, y2) {
+        this.timestamp = Date.now();
+        this.type = 1;
+
+        this.p1 = {};
+        this.p1.x = x1;
+        this.p1.y = y1;
+
+        this.p2 = {};
+        this.p2.x = x2;
+        this.p2.y = y2;
+
+        this.length = Math.sqrt((Math.pow(this.p1.x - this.p2.x, 2)) + (Math.pow(this.p1.y - this.p2.y, 2)));
+        this.angle = ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI) < 0 ? // Make math better
+            ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI) + 180 : ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI);
+    }
+}
+
+/**
+ * Makes all points the same layout
+ */
+class Point {
+    constructor(x, y) {
+        this.timestamp = Date.now();
+        this.type = 2;
+
+        this.x = x;
+        this.y = y;
+    }
+}
+
+
 // Setup Functions
 
 /**
@@ -95,7 +156,7 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
  * @returns {Path2D} - Circle wrapped in a Path2D // FIXME : is it wrapped?
  * @constructor
  */
-function Circle(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
+function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
     console.debug('Circle');
     let crcl = new Path2D();
     crcl.arc(x, y, radius, 0, Math.PI * 2);
@@ -126,7 +187,7 @@ function drawCircle(x1, y1, x2, y2, i) {
 
     rdus.innerText = radius.toFixed(3);
 
-    addCircle(center.x, center.y, (radius * 2), i);
+    addCircle(center.x, center.y, radius, i);
 }
 
 
@@ -139,7 +200,7 @@ function reDraw(i) {
     clearCanvas();
     for(let j = 0; j < marks.length; j++) {
         if (marks[j] == null) continue;
-        crcl = Circle(marks[j].x, marks[j].y, (marks[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
+        crcl = _Circle2D(marks[j].x, marks[j].y, (marks[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
         ctx.lineWidth = 2;
         if (j === i) {
             ctx.strokeStyle = "#fff";
@@ -204,15 +265,17 @@ function getNearest(canvas, e) {
  * Creates a circle mark then re-draws the canvas
  * @param {number} x - center x-coord
  * @param {number} y - center y-coord
- * @param {number} d - diameter
+ * @param {number} radius - radius
  * @param {number} [index] - index of circle
  */
-function addCircle(x, y, d, index) {
+function addCircle(x, y, radius, index) {
     console.debug('addCircle');
-    if (typeof index === "number" && 0 <= index <= marks.length)
-        marks[index] = {x: x, y: y, d: d, t: 0, ts: Date.now()};
+    let crcl = new Circle(x, y, radius);
+
+    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
+        marks[index] = crcl;
     else
-        marks.push({x: x, y: y, d: d, t: 0, ts: Date.now()});
+        marks.push(crcl);
     reDraw();
 }
 
@@ -232,7 +295,6 @@ function _down(e) {
 
     if (dltl.checked) { // if Delete Tool is checked
         let nr = getNearest(canvas, e);
-        console.log(nr);
         delMark(nr);
         isDown = false;
         return void(0);
