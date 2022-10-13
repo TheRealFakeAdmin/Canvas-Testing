@@ -1,6 +1,12 @@
 // Settings
 
-const minCraterSize = 18;
+const minCraterSize     = 18; // Minimum crater size
+const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle
+const pointRadius       = 10; // Radius of the point
+const delPointMaxDist   = 10; // Maximum distance to delete a point
+
+const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
+
 
 // Setup Variables
 
@@ -14,10 +20,9 @@ const strc = document.getElementById('start-coords');
 const cntr = document.getElementById('center-coords');
 const endc = document.getElementById('end-coords');
 const rdus = document.getElementById('radius');
+const lnth = document.getElementById('length');
+const angl = document.getElementById('angle');
 const msdn = document.getElementById('mouse-down');
-
-// Form Stuff
-const dltl = document.getElementById('delTool');
 
 const marks = []; // Array of all the marks
 
@@ -28,6 +33,7 @@ let x1,                 /// start point
     center,
     radius,
     i = 0,
+    isHover = false,
     isDown = false;     /// if mouse button is down
 
 
@@ -40,11 +46,11 @@ canvas.height = 450; // Height of the canvas
 // Setup Classes
 
 /**
- * Makes all circles the same layout
+ * Makes all circles standardized. Used in the marks array.
  */
 class Circle {
     /**
-     * Generates a circle representation
+     * Creates the representation of a circle. Used in the marks array.
      * @param x - Center x-coord
      * @param y - Center y-coord
      * @param radius - radius of the circle
@@ -62,32 +68,51 @@ class Circle {
 }
 
 /**
- * @example new Line(2, 5, 8, 13)
+ * Standardized Lines, what more could you want! :)
+ *
+ * @example new Line(2, 5, 8, 13);
  */
 class Line {
-
+    /**
+     * Creates the representation of a line. Used in the marks array.
+     *
+     * @param x1 - Point-1 X-Coord
+     * @param y1 - Point-1 Y-Coord
+     * @param x2 - Point-2 X-Coord
+     * @param y2 - Point-2 Y-Coord
+     */
     constructor(x1, y1, x2, y2) {
         this.timestamp = Date.now();
         this.type = 1;
 
-        this.p1 = {};
-        this.p1.x = x1;
-        this.p1.y = y1;
+        this.x1 = x1;
+        this.y1 = y1;
 
-        this.p2 = {};
-        this.p2.x = x2;
-        this.p2.y = y2;
+        this.x2 = x2;
+        this.y2 = y2;
 
-        this.length = Math.sqrt((Math.pow(this.p1.x - this.p2.x, 2)) + (Math.pow(this.p1.y - this.p2.y, 2)));
-        this.angle = ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI) < 0 ? // Make math better
-            ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI) + 180 : ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI);
+        this.center = {};
+        this.center.x = (x1 + x2) / 2;
+        this.center.y = (y1 + y2) / 2;
+
+        let a = ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI)
+        this.angle = a < 0 ? a + 180 : a;
+
+        this.length = Math.sqrt((Math.pow(x1 - x2, 2)) + (Math.pow(y1 - y2, 2)));
     }
 }
 
 /**
- * Makes all points the same layout
+ * Makes all points standardized.
+ *
+ * @example new Point(12, 64);
  */
 class Point {
+    /**
+     * Creates the representation of a point. Used in the marks array.
+     * @param x - X-Coord
+     * @param y - Y-Coord
+     */
     constructor(x, y) {
         this.timestamp = Date.now();
         this.type = 2;
@@ -176,9 +201,9 @@ function drawCircle(x1, y1, x2, y2, i) {
     console.debug('drawCircle');
 
     center = {
-            x: (x1 + x2) / 2,
-            y: (y1 + y2) / 2
-        }
+        x: (x1 + x2) / 2,
+        y: (y1 + y2) / 2
+    }
 
     radius = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
 
@@ -192,28 +217,137 @@ function drawCircle(x1, y1, x2, y2, i) {
 
 
 /**
+ * Creates a circle mark then re-draws the canvas
+ * @param {number} x - center x-coord
+ * @param {number} y - center y-coord
+ * @param {number} radius - radius
+ * @param {number} [index] - index of circle
+ */
+function addCircle(x, y, radius, index) {
+    console.debug('addCircle');
+    let crcl = new Circle(x, y, radius);
+
+    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
+        marks[index] = crcl;
+    else
+        marks.push(crcl);
+    reDraw();
+}
+
+
+function _Line2D(x1, y1, x2, y2) {
+    let ln = new Path2D();
+    ln.moveTo(x1, y1);
+    ln.lineTo(x2, y2);
+    return ln;
+}
+
+
+function drawLine(x1, y1, x2, y2, index) {
+    let ln = new Line(x1, y1, x2, y2);
+    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
+        marks[index] = ln;
+    else
+        marks.push(ln);
+    reDraw();
+
+    lnth.innerText = ln.length.toFixed(3);
+    angl.innerText = `${ln.angle.toFixed(3)}\u00b0`;
+    cntr.innerText = `[${ln.center.x},${ln.center.y}]`;
+
+}
+
+
+/**
+ * Creates a Path2D point
+ * @param x - x-position
+ * @param y - y-position
+ * @returns {Path2D}
+ * @private
+ */
+function _Point2D(x, y) {
+    let pt = new Path2D();
+    pt.arc(x, y, pointRadius, 0, Math.PI * 2);
+    return pt;
+}
+
+
+/**
+ * Add point to the marks list
+ * @param x - x-position
+ * @param y - y-position
+ * @param index
+ */
+function addPoint(x, y, index) {
+    console.debug('addCircle');
+    let pt = new Point(x, y);
+
+    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
+        marks[index] = pt;
+    else
+        marks.push(pt);
+    reDraw();
+}
+
+
+/**
  * Clears canvas then loops through all marks to re-draw
+ *
+ * @note ctx.strokeStyle = "#f8b31f";<br>ctx.fillStyle = "#f8b31f33";
  */
 function reDraw(i) {
     console.debug('reDraw');
-    let crcl;
+    let tmp, v;
     clearCanvas();
+
     for(let j = 0; j < marks.length; j++) {
-        if (marks[j] == null) continue;
-        crcl = _Circle2D(marks[j].x, marks[j].y, (marks[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
-        ctx.lineWidth = 2;
-        if (j === i) {
-            ctx.strokeStyle = "#fff";
-            ctx.fillStyle = "#fff3";
-        } else if ((marks[j].d) < minCraterSize) {
-            ctx.strokeStyle = "#f00";
-            ctx.fillStyle = "#f003";
-        } else {
-            ctx.strokeStyle = "#f8b31f";
-            ctx.fillStyle = "#f8b31f33";
+        v = marks[j];
+        if (v === undefined) { // Self Healing (if empty)
+            delMark(j); // Delete empty index
+            --j;        // then go back one because one was deleted
+            continue;
         }
-        ctx.stroke(crcl, "nonzero");
-        ctx.fill(crcl, "nonzero");
+        switch (v.type) {
+            case 0: // Circle
+                tmp = _Circle2D(v.x, v.y, (v.r)); // Circle with center [x,y] & radius = diameter/2
+                ctx.lineWidth = 2;
+                if (j === i) { // if Selected
+                    ctx.strokeStyle = "#fff";
+                    ctx.fillStyle = "#fff3";
+                } else if ((v.d) < minCraterSize) {
+                    ctx.strokeStyle = "#f00";
+                    ctx.fillStyle = "#f003";
+                } else {
+                    ctx.strokeStyle = "#f8b31f";
+                    ctx.fillStyle = "#f8b31f33";
+                }
+
+                ctx.stroke(tmp, "nonzero");
+                ctx.fill(tmp, "nonzero");
+                break;
+            case 1: // Line
+                tmp = _Line2D(v.x1, v.y1, v.x2, v.y2);
+                ctx.beginPath();
+                ctx.lineWidth = 5;
+                if (j === i) { // if Selected
+                    ctx.strokeStyle = "#fffa";
+                } else {
+                    ctx.strokeStyle = "#f8b31faa";
+                }
+                ctx.closePath();
+                ctx.stroke(tmp, "nonzero");
+                break;
+            case 2: // Point
+                tmp = _Point2D(v.x, v.y);
+                ctx.lineWidth = 0;
+                if (j === i) { // if Selected
+                    ctx.fillStyle = "#fffa";
+                } else {
+                    ctx.fillStyle = "#f8b31faa";
+                }
+
+                ctx.fill(tmp, "nonzero");
+        }
     }
 }
 
@@ -251,32 +385,25 @@ function getNearest(canvas, e) {
     let msPs = getPosition(canvas, e);
 
     marks.forEach((v, i) => {
-        temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
-        if (bestDist > temp && (v.d / 2) >= temp) { // closer than last best & no further than radius
-            bestDist = temp;
-            best = i;
+        switch (v.type) {
+            case 0: // Circle
+                temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
+                if (bestDist > temp && v.r >= temp && temp <= delCircleMaxDist) { // closer than last best & no further than radius
+                    bestDist = temp;
+                    best = i;
+                }
+                break;
+            case 1: // Line
+                break;
+            case 2: // Point
+                temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
+                if (bestDist > temp && delPointMaxDist >= temp) { // closer than last best & no further than radius
+                    bestDist = temp;
+                    best = i;
+                }
         }
     })
     return best; // if none, Infinity deletes nothing in delMark
-}
-
-
-/**
- * Creates a circle mark then re-draws the canvas
- * @param {number} x - center x-coord
- * @param {number} y - center y-coord
- * @param {number} radius - radius
- * @param {number} [index] - index of circle
- */
-function addCircle(x, y, radius, index) {
-    console.debug('addCircle');
-    let crcl = new Circle(x, y, radius);
-
-    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
-        marks[index] = crcl;
-    else
-        marks.push(crcl);
-    reDraw();
 }
 
 
@@ -293,29 +420,31 @@ function _down(e) {
         return;
     }
 
-    if (dltl.checked) { // if Delete Tool is checked
-        let nr = getNearest(canvas, e);
-        delMark(nr);
-        isDown = false;
-        return void(0);
-    } else {
+    isDown = true;
+    i = marks.length;
 
-        i = marks.length;
+    let pos = getPosition(canvas, e);
+    x1 = pos.x;
+    y1 = pos.y;
 
-        /// get corrected mouse position and store as first point
-        /*rect = canvas.getBoundingClientRect();
-        x1 = e.clientX - rect.left;
-        y1 = e.clientY - rect.top;*/
-        let pos = getPosition(canvas, e);
-        x1 = pos.x;
-        y1 = pos.y;
+    msdn.innerText = "True";
 
-        isDown = true;
-
-        // nice looking stuff
-        strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
-        msdn.innerText = "True";
-
+    switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case "-1": // Delete Tool
+            let nr = getNearest(canvas, e);
+            delMark(nr);
+            return void(0);
+        case "0": // Circle Tool
+            // nice looking stuff
+            strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
+            break;
+        case "1": // Line Tool
+            strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
+            break;
+        case "2": // Point Tool
+            addPoint(pos.x, pos.y, i);
+            i++;
+            break;
     }
 }
 
@@ -327,30 +456,43 @@ function _down(e) {
  */
 function _move(e) {
     console.debug('_move');
-    // real work
-    /*rect = canvas.getBoundingClientRect();
-    x2 = e.clientX - rect.left;
-    y2 = e.clientY - rect.top;*/
+    isHover = true;
 
     let pos = getPosition(canvas, e);
     x2 = pos.x;
     y2 = pos.y;
 
-    /// Display Coords
+    /// Setting Coords
     crds.innerText = `[${x2},${y2}]`;
 
-    if (dltl.checked) { // if Delete Tool is checked
-        let nr = getNearest(canvas, e);
-        reDraw(nr); // highlight selected
-    } else if (isDown) { // if not delTool but is mousedown
-        endc.innerText = `[${x2},${y2}]`;
+    switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case "-1": // Delete Tool
+            let nr = getNearest(canvas, e);
+            reDraw(nr); // highlight selected
+            break;
+        case "0": // Circle Tool
+            if (isDown) { // if not Tool but is mousedown
+                /// draw ellipse
+                drawCircle(x1, y1, x2, y2, i);
 
-        /// draw ellipse
-        drawCircle(x1, y1, x2, y2, i);
+                // Setting End Coords
+                endc.innerText = `[${x2},${y2}]`;
+            }
+            break;
+        case "1": // Line Tool
+            if (isDown) {
+                // Draw Line
+                drawLine(x1, y1, x2, y2, i);
 
-        // nice looking stuff
-        let cv = _getMousePos(canvas, e);
-        crds.innerText = `[${cv.x},${cv.y}]`;
+                // Setting End Coords
+                endc.innerText = `[${x2},${y2}]`;
+            }
+            break;
+        case "2": // Point Tool
+            break;
+        default:
+            console.log("Just another edge case, nothing to worry about!\nHere is a cookie 🍪");
+            break;
     }
 }
 
@@ -362,6 +504,7 @@ function _move(e) {
  */
 function _up(e) {
     console.debug('_up');
+    isHover = false;
     if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
 
     // real work
@@ -434,6 +577,28 @@ function _receive() {
     http.send();
 }
 
+function _keyPress(e) {
+    if (!isHover) return;
+    switch (e.keyCode) {
+        case 100: // d
+            e.preventDefault();
+            document.querySelector('#delTool').click();
+            break;
+        case 99: // c
+            e.preventDefault();
+            document.querySelector('#circleTool').click();
+            break;
+        case 108: // l
+            e.preventDefault();
+            document.querySelector('#lineTool').click();
+            break;
+        case 112: // p
+            e.preventDefault();
+            document.querySelector('#pointTool').click();
+            break;
+    }
+}
+
 
 /// draw ellipse from start point
 
@@ -462,6 +627,8 @@ addEventListener('mouseup', _up);
 addEventListener('mouseleave', _up);
 
 addEventListener('mouseout', _up);
+
+addEventListener('keypress', _keyPress);
 
 
 reDraw();
