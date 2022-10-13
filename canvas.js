@@ -133,7 +133,7 @@ function drawCircle(x1, y1, x2, y2, i) {
 /**
  * Clears canvas then loops through all marks to re-draw
  */
-function reDraw() {
+function reDraw(i) {
     console.debug('reDraw');
     let crcl;
     clearCanvas();
@@ -141,7 +141,10 @@ function reDraw() {
         if (marks[j] == null) continue;
         crcl = Circle(marks[j].x, marks[j].y, (marks[j].d / 2)); // Circle with center [x,y] & radius = diameter/2
         ctx.lineWidth = 2;
-        if ((marks[j].d) < minCraterSize) {
+        if (j === i) {
+            ctx.strokeStyle = "#fff";
+            ctx.fillStyle = "#fff3";
+        } else if ((marks[j].d) < minCraterSize) {
             ctx.strokeStyle = "#f00";
             ctx.fillStyle = "#f003";
         } else {
@@ -183,14 +186,16 @@ function delLastMark() {
  * @returns {number} - Index of the nearest mark
  */
 function getNearest(canvas, e) {
-    let temp, best = Infinity, bestDist; // Temporary, Best Mark, Best Distance
+    let temp, best = Infinity, bestDist = Infinity; // Temporary, Best Mark, Best Distance
     let msPs = getPosition(canvas, e);
 
-    marks.forEach((v) => {
-        temp = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
-
+    marks.forEach((v, i) => {
+        temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
+        if (bestDist > temp && (v.d / 2) >= temp) { // closer than last best & no further than radius
+            bestDist = temp;
+            best = i;
+        }
     })
-
     return best; // if none, Infinity deletes nothing in delMark
 }
 
@@ -225,21 +230,31 @@ function _down(e) {
         return;
     }
 
-    i = marks.length;
+    if (dltl.checked) { // if Delete Tool is checked
+        let nr = getNearest(canvas, e);
+        console.log(nr);
+        delMark(nr);
+        isDown = false;
+        return void(0);
+    } else {
 
-    /// get corrected mouse position and store as first point
-    /*rect = canvas.getBoundingClientRect();
-    x1 = e.clientX - rect.left;
-    y1 = e.clientY - rect.top;*/
-    let pos = getPosition(canvas, e);
-    x1 = pos.x;
-    y1 = pos.y;
+        i = marks.length;
 
-    isDown = true;
+        /// get corrected mouse position and store as first point
+        /*rect = canvas.getBoundingClientRect();
+        x1 = e.clientX - rect.left;
+        y1 = e.clientY - rect.top;*/
+        let pos = getPosition(canvas, e);
+        x1 = pos.x;
+        y1 = pos.y;
 
-    // nice looking stuff
-    strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
-    msdn.innerText = "True";
+        isDown = true;
+
+        // nice looking stuff
+        strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
+        msdn.innerText = "True";
+
+    }
 }
 
 
@@ -263,7 +278,8 @@ function _move(e) {
     crds.innerText = `[${x2},${y2}]`;
 
     if (dltl.checked) { // if Delete Tool is checked
-
+        let nr = getNearest(canvas, e);
+        reDraw(nr); // highlight selected
     } else if (isDown) { // if not delTool but is mousedown
         endc.innerText = `[${x2},${y2}]`;
 
