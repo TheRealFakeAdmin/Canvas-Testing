@@ -16,6 +16,9 @@ const endc = document.getElementById('end-coords');
 const rdus = document.getElementById('radius');
 const msdn = document.getElementById('mouse-down');
 
+// Form Stuff
+const dltl = document.getElementById('delTool');
+
 const marks = []; // Array of all the marks
 
 let x1,                 /// start point
@@ -55,6 +58,7 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
     }
 }
 
+
 /**
  * Get position of mouse relative to Canvas
  * @param {HTMLCanvasElement} canvas - Target canvas
@@ -82,6 +86,7 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
     };
 }
 
+
 /**
  * Creates a circle Path2D
  * @param {number} x - Center x-position
@@ -96,7 +101,6 @@ function Circle(x, y, radius) { // TODO : Re-Think what is considered a private 
     crcl.arc(x, y, radius, 0, Math.PI * 2);
     return crcl;
 }
-
 
 
 /**
@@ -125,6 +129,7 @@ function drawCircle(x1, y1, x2, y2, i) {
     addCircle(center.x, center.y, (radius * 2), i);
 }
 
+
 /**
  * Clears canvas then loops through all marks to re-draw
  */
@@ -148,6 +153,7 @@ function reDraw() {
     }
 }
 
+
 /**
  * Deletes selected mark
  * @param {number} i - index of mark
@@ -158,10 +164,36 @@ function delMark(i) {
     reDraw();
 }
 
+
+/**
+ * Deletes the latest mark*
+ *
+ * *Does not go off of timestamps
+ */
 function delLastMark() {
     console.debug('delLastMark');
     delMark(marks.length - 1);
 }
+
+
+/**
+ *
+ * @param {HTMLCanvasElement} canvas - Target Canvas
+ * @param {Event} e - Mouse Event
+ * @returns {number} - Index of the nearest mark
+ */
+function getNearest(canvas, e) {
+    let temp, best = Infinity, bestDist; // Temporary, Best Mark, Best Distance
+    let msPs = getPosition(canvas, e);
+
+    marks.forEach((v) => {
+        temp = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
+
+    })
+
+    return best; // if none, Infinity deletes nothing in delMark
+}
+
 
 /**
  * Creates a circle mark then re-draws the canvas
@@ -179,6 +211,7 @@ function addCircle(x, y, d, index) {
     reDraw();
 }
 
+
 /**
  * Run when mouse button is pressed in canvas
  * @param {Event} e
@@ -187,7 +220,7 @@ function addCircle(x, y, d, index) {
 function _down(e) {
     console.debug('_down');
     if (isDown || e.button !== 0) { // left/main click === e.button of 0
-        console.debug("176");
+        console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");
         _up(e);
         return;
     }
@@ -209,6 +242,7 @@ function _down(e) {
     msdn.innerText = "True";
 }
 
+
 /**
  * Run when mouse is moved on canvas
  * @param {Event} e
@@ -228,21 +262,20 @@ function _move(e) {
     /// Display Coords
     crds.innerText = `[${x2},${y2}]`;
 
+    if (dltl.checked) { // if Delete Tool is checked
 
-    if (!isDown) return;
+    } else if (isDown) { // if not delTool but is mousedown
+        endc.innerText = `[${x2},${y2}]`;
 
-    /*/// clear canvas
-    reDraw();*/
+        /// draw ellipse
+        drawCircle(x1, y1, x2, y2, i);
 
-    endc.innerText = `[${x2},${y2}]`;
-
-    /// draw ellipse
-    drawCircle(x1, y1, x2, y2, i);
-
-    // nice looking stuff
-    let cv = _getMousePos(canvas, e);
-    crds.innerText = `[${cv.x},${cv.y}]`;
+        // nice looking stuff
+        let cv = _getMousePos(canvas, e);
+        crds.innerText = `[${cv.x},${cv.y}]`;
+    }
 }
+
 
 /**
  * Run when mouse button is released in canvas (or exiting canvas)
@@ -271,11 +304,22 @@ function _up(e) {
     void(0);
 }
 
+
+/**
+ * Clears the canvas
+ */
 function clearCanvas() {
     console.debug('clearCanvas');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+
+/**
+ * POSTs data (marks array) to post.php
+ *
+ * Proof of concept
+ * @private
+ */
 function _send() {
     console.debug('_send');
     let data = `marks=${JSON.stringify(marks)}`;
@@ -292,6 +336,13 @@ function _send() {
     http.send(data);
 }
 
+
+/**
+ * GETs data from request.php
+ *
+ * Proof of concept
+ * @private
+ */
 function _receive() {
     console.debug('_receive');
     let http = new XMLHttpRequest();
@@ -312,11 +363,16 @@ function _receive() {
 
 // Event Listeners
 
+/**
+ * Prevents fast-clicks from keeping isDown true
+ */
 addEventListener('click', () => {
     console.debug('click');
     isDown = false;
     msdn.innerText = 'False';
-}); // Prevents fast-clicks from keeping isDown true
+});
+
+//addEventListener('click', _up);
 
 canvas.addEventListener('mousedown', _down);
 
