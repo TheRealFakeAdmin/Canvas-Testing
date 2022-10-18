@@ -1,20 +1,22 @@
 // Settings
 
 const minCraterSize     = 18; // Minimum crater size
-const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle
+const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle (Delete Tool)
 const pointRadius       = 10; // Radius of the point
-const delPointMaxDist   = 10; // Maximum distance to delete a point
+const delPointMaxDist   = 10; // Maximum distance to delete a point (Delete Tool)
+const delLineMaxDist    = 10; // Maximum distance to delete a line (Delete Tool)
+const minLineLength     = 45;  // Minimum length of a line
 
 const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
-
+const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
 
 // Setup Variables
 
 const canvas = document.getElementById('canvas'); // The Canvas
 
-const ctx = canvas.getContext("2d");
+const ctx = canvas.getContext("2d"); // Canvas context
 
-// Text bellow the canvas
+// Debug Information bellow canvas
 const crds = document.getElementById('coords');
 const strc = document.getElementById('start-coords');
 const cntr = document.getElementById('center-coords');
@@ -95,10 +97,10 @@ class Line {
         this.center.x = (x1 + x2) / 2;
         this.center.y = (y1 + y2) / 2;
 
-        let a = ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI)
-        this.angle = a < 0 ? a + 180 : a;
+        this.angle = ((Math.atan2(y2-y1, x2-x1) * 180) / Math.PI) + 180 % 360; // 0=Right to Left; 180=Left to Right
+        //this.angle = a < 0 ? a + 180 : a;
 
-        this.length = Math.sqrt((Math.pow(x1 - x2, 2)) + (Math.pow(y1 - y2, 2)));
+        this.length = distanceCalc(x1, y1, x2, y2);
     }
 }
 
@@ -133,7 +135,6 @@ class Point {
  * @private
  */
 function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
-    console.debug(`_getMousePos`);
     let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
@@ -149,11 +150,10 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
  * Get position of mouse relative to Canvas
  * @param {HTMLCanvasElement} canvas - Target canvas
  * @param {Event} event - Event input
- * @param {boolean|number} toFixed - `Number.prototype.toFixed` input
+ * @param {false|number} toFixed - `Number.prototype.toFixed` argument
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of _getMousePos?
-    console.debug('getPosition');
     let mp = _getMousePos(canvas, event);
     let x, y;
     switch(toFixed) {
@@ -179,10 +179,9 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
  * @param {number} y - Center y-position
  * @param {number} radius - Radius of the circle
  * @returns {Path2D} - Circle wrapped in a Path2D // FIXME : is it wrapped?
- * @constructor
+ * @private
  */
 function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
-    console.debug('Circle');
     let crcl = new Path2D();
     crcl.arc(x, y, radius, 0, Math.PI * 2);
     return crcl;
@@ -198,17 +197,15 @@ function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a priva
  * @param {number} i - Current index of `marks`
  */
 function drawCircle(x1, y1, x2, y2, i) {
-    console.debug('drawCircle');
-
     center = {
         x: (x1 + x2) / 2,
         y: (y1 + y2) / 2
     }
 
-    radius = Math.sqrt((Math.pow(x1 - center.x, 2)) + (Math.pow(y1 - center.y, 2)));
+    radius = distanceCalc(center.x, center.y, x1, y1);
 
     cntr.innerText = `[${center.x},${center.y}]`;
-    console.log("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
+    console.debug("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
 
     rdus.innerText = radius.toFixed(3);
 
@@ -224,7 +221,6 @@ function drawCircle(x1, y1, x2, y2, i) {
  * @param {number} [index] - index of circle
  */
 function addCircle(x, y, radius, index) {
-    console.debug('addCircle');
     let crcl = new Circle(x, y, radius);
 
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
@@ -243,6 +239,14 @@ function _Line2D(x1, y1, x2, y2) {
 }
 
 
+/**
+ * Creates and saves a line to marks array.
+ * @param x1 - Point-1 X-Coord
+ * @param y1 - Point-1 Y-Coord
+ * @param x2 - Point-2 X-Coord
+ * @param y2 - Point-2 Y-Coord
+ * @param index
+ */
 function drawLine(x1, y1, x2, y2, index) {
     let ln = new Line(x1, y1, x2, y2);
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
@@ -279,7 +283,6 @@ function _Point2D(x, y) {
  * @param index
  */
 function addPoint(x, y, index) {
-    console.debug('addCircle');
     let pt = new Point(x, y);
 
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
@@ -296,7 +299,6 @@ function addPoint(x, y, index) {
  * @note ctx.strokeStyle = "#f8b31f";<br>ctx.fillStyle = "#f8b31f33";
  */
 function reDraw(i) {
-    console.debug('reDraw');
     let tmp, v;
     clearCanvas();
 
@@ -314,12 +316,12 @@ function reDraw(i) {
                 if (j === i) { // if Selected
                     ctx.strokeStyle = "#fff";
                     ctx.fillStyle = "#fff3";
-                } else if ((v.d) < minCraterSize) {
+                } else if ((v.d) < minCraterSize) { // if too small
                     ctx.strokeStyle = "#f00";
                     ctx.fillStyle = "#f003";
                 } else {
                     ctx.strokeStyle = "#f8b31f";
-                    ctx.fillStyle = "#f8b31f33";
+                    ctx.fillStyle = "#f8b31f33"; // #f8b31f33
                 }
 
                 ctx.stroke(tmp, "nonzero");
@@ -331,8 +333,10 @@ function reDraw(i) {
                 ctx.lineWidth = 5;
                 if (j === i) { // if Selected
                     ctx.strokeStyle = "#fffa";
+                } else if (v.length < minLineLength) { // if no long enough
+                    ctx.strokeStyle = "#f00a";
                 } else {
-                    ctx.strokeStyle = "#f8b31faa";
+                    ctx.strokeStyle = "#601a4aaa"; // #5a368daa
                 }
                 ctx.closePath();
                 ctx.stroke(tmp, "nonzero");
@@ -343,7 +347,7 @@ function reDraw(i) {
                 if (j === i) { // if Selected
                     ctx.fillStyle = "#fffa";
                 } else {
-                    ctx.fillStyle = "#f8b31faa";
+                    ctx.fillStyle = "#ccca"; // #a77311aa
                 }
 
                 ctx.fill(tmp, "nonzero");
@@ -357,7 +361,6 @@ function reDraw(i) {
  * @param {number} i - index of mark
  */
 function delMark(i) {
-    console.debug('delMark');
     marks.splice(i, 1);
     reDraw();
 }
@@ -369,42 +372,152 @@ function delMark(i) {
  * *Does not go off of timestamps
  */
 function delLastMark() {
-    console.debug('delLastMark');
     delMark(marks.length - 1);
 }
 
 
 /**
- *
+ * Calculates the distance of all marks then returns the nearest mark's index number.
  * @param {HTMLCanvasElement} canvas - Target Canvas
  * @param {Event} e - Mouse Event
  * @returns {number} - Index of the nearest mark
  */
 function getNearest(canvas, e) {
-    let temp, best = Infinity, bestDist = Infinity; // Temporary, Best Mark, Best Distance
+    let tempDist, best = Infinity, bestDist = Infinity; // Temporary distance, Best Mark, Best Distance
     let msPs = getPosition(canvas, e);
 
+    const x0 = msPs.x,
+          y0 = msPs.y;
+
+    let x, y;
+
     marks.forEach((v, i) => {
-        switch (v.type) {
+        switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
-                temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
-                if (bestDist > temp && v.r >= temp && temp <= delCircleMaxDist) { // closer than last best & no further than radius
-                    bestDist = temp;
+                x = v.x;
+                y = v.y;
+                tempDist = distanceCalc(x, y, x0, y0);
+
+                if (bestDist >= tempDist && v.r >= tempDist && tempDist <= delCircleMaxDist) { // closer or equal to last best & no further than radius
+                    bestDist = tempDist;
                     best = i;
                 }
                 break;
             case 1: // Line
+                let x1 = v.x1,
+                    y1 = v.y1,
+                    x2 = v.x2,
+                    y2 = v.y2;
+
+                switch (v.angle) { // Line-Angle going clockwise starting at 3 o'clock == 0
+                    case 180: // - same-y
+                        if (x0 <= x1) {
+                            tempDist = distanceCalc(x0, y0, x1, y1);
+                        } else if (x0 >= x2) {
+                            tempDist = distanceCalc(x0, y0, x2, y2);
+                        } else {
+                            tempDist = distanceCalc(x0, y0, x0, y1);
+                        }
+                        break;
+                    case 270: // | same-x
+                        if (y0 <= y1) {
+                            tempDist = distanceCalc(x0, y0, x1, y1);
+                        } else if (y0 >= y2) {
+                            tempDist = distanceCalc(x0, y0, x2, y2);
+                        } else {
+                            tempDist = distanceCalc(x0, y0, x1, y0);
+                        }
+                        break;
+                    case 360: // - same-y
+                        if (x0 >= x1) {
+                            tempDist = distanceCalc(x0, y0, x1, y1);
+                        } else if (x0 <= x2) {
+                            tempDist = distanceCalc(x0, y0, x2, y2);
+                        } else {
+                            tempDist = distanceCalc(x0, y0, x0, y1);
+                        }
+                        break;
+                    case 90: // | same-x
+                        if (y0 >= y1) {
+                            tempDist = distanceCalc(x0, y0, x1, y1);
+                        } else if (y0 <= y2) {
+                            tempDist = distanceCalc(x0, y0, x2, y2);
+                        } else {
+                            tempDist = distanceCalc(x0, y0, x1, y0);
+                        }
+                        break;
+                    default: // Arbitrary angle; The real magic
+
+                        break;
+                }
+                if (bestDist >= tempDist && delLineMaxDist >= tempDist) { // closer than last best & no further than radius
+                    bestDist = tempDist;
+                    best = i;
+                }
                 break;
             case 2: // Point
-                temp = Math.sqrt((Math.pow(msPs.x - v.x, 2)) + (Math.pow(msPs.y - v.y, 2)));
-                if (bestDist > temp && delPointMaxDist >= temp) { // closer than last best & no further than radius
-                    bestDist = temp;
+                x = v.x;
+                y = v.y;
+                tempDist = distanceCalc(v.x, v.y, msPs.x, msPs.y);
+
+                if (bestDist >= tempDist && delPointMaxDist >= tempDist) { // closer than last best & no further than radius
+                    bestDist = tempDist;
                     best = i;
                 }
         }
     })
+    console.debug("Best:", bestDist);
     return best; // if none, Infinity deletes nothing in delMark
 }
+
+
+/**
+ * Returns the distance between two points.
+ * @param x1 - Point 1 X-Position
+ * @param y1 - Point 1 Y-Position
+ * @param x2 - Point 2 X-Position
+ * @param y2 - Point 2 Y-Position
+ * @returns {number} - Distance between [x1,y1] & [x2,y2]
+ */
+function distanceCalc(x1, y1, x2, y2) {
+    return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
+}
+
+
+/**
+ * Rotate the axis.
+ * @param {Array} c - Array of points [[x1,y1],[x2,y2],[x3,y3],...]
+ * @param {number} r - Amount of rotation in radians.
+ * @param {boolean} [rad] - Set to false to use degrees with r.
+ */
+function rotateAxis(c, r, rad=true) {
+    if (!Array.isArray(c) || !Number.isFinite(r)) return void(0);
+    if (rad !== true) {
+        r = r*(Math.PI/180);
+    }
+    let resp = [],
+        x, y;
+    c.forEach((v, i) => {
+        x = v[0];
+        y = v[1];
+        resp[i] = [];
+
+        resp[i][0] = (x * Math.cos(r)) + (y * Math.sin(r));
+        resp[i][1] = (-x * Math.sin(r)) + (y * Math.cos(r));
+    })
+
+    return resp;
+}
+
+
+/**
+ * Clamps number within range. Numbers out of range are set to the nearest min/max.
+ * @param num - Number to clamp
+ * @param min - Minimum allowed value
+ * @param max - Maximum allowed value
+ * @returns {number}
+ */
+Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps number within range
 
 
 /**
@@ -413,7 +526,6 @@ function getNearest(canvas, e) {
  * @private
  */
 function _down(e) {
-    console.debug('_down');
     if (isDown || e.button !== 0) { // left/main click === e.button of 0
         console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");
         _up(e);
@@ -455,7 +567,6 @@ function _down(e) {
  * @private
  */
 function _move(e) {
-    console.debug('_move');
     isHover = true;
 
     let pos = getPosition(canvas, e);
@@ -491,7 +602,7 @@ function _move(e) {
         case "2": // Point Tool
             break;
         default:
-            console.log("Just another edge case, nothing to worry about!\nHere is a cookie 🍪");
+            console.debug("Just another edge case, nothing to worry about!\nHere is a cookie 🍪");
             break;
     }
 }
@@ -503,14 +614,23 @@ function _move(e) {
  * @private
  */
 function _up(e) {
-    console.debug('_up');
     isHover = false;
     if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
 
     // real work
     isDown = false; // clear isDown flag to stop drawing
-    if (marks[i].d < minCraterSize) {
-        delMark(i);
+
+    switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case '0': // Circle Tool
+            if (marks[i].d < minCraterSize)
+                delMark(i);
+            break;
+        case '1': // Line Tool
+            if (marks[i].length < minLineLength)
+                delMark(i);
+            break;
+        case '2': // Point
+            break;
     }
 
     reDraw();
@@ -521,7 +641,6 @@ function _up(e) {
     msdn.innerText = 'False';
 
     i = marks.length;
-    _send();
     void(0);
 }
 
@@ -530,7 +649,6 @@ function _up(e) {
  * Clears the canvas
  */
 function clearCanvas() {
-    console.debug('clearCanvas');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -542,7 +660,6 @@ function clearCanvas() {
  * @private
  */
 function _send() {
-    console.debug('_send');
     let data = `marks=${JSON.stringify(marks)}`;
     let http = new XMLHttpRequest();
 
@@ -565,7 +682,6 @@ function _send() {
  * @private
  */
 function _receive() {
-    console.debug('_receive');
     let http = new XMLHttpRequest();
     http.addEventListener('readystatechange', (r) => {
         let rsp = r.target;
@@ -610,7 +726,6 @@ function _keyPress(e) {
  * Prevents fast-clicks from keeping isDown true
  */
 addEventListener('click', () => {
-    console.debug('click');
     isDown = false;
     msdn.innerText = 'False';
 });
