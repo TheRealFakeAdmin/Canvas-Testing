@@ -10,6 +10,7 @@ const minLineLength     = 45;  // Minimum length of a line
 const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
 const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
 
+
 // Setup Variables
 
 const canvas = document.getElementById('canvas'); // The Canvas
@@ -386,12 +387,13 @@ function getNearest(canvas, e) {
     let tempDist, best = Infinity, bestDist = Infinity; // Temporary distance, Best Mark, Best Distance
     let msPs = getPosition(canvas, e);
 
-    const x0 = msPs.x,
-          y0 = msPs.y;
+    let x0 = msPs.x,
+        y0 = msPs.y;
 
     let x, y;
 
     marks.forEach((v, i) => {
+        console.debug(i, v);
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
                 x = v.x;
@@ -447,7 +449,27 @@ function getNearest(canvas, e) {
                         }
                         break;
                     default: // Arbitrary angle; The real magic
+                        let ang = (v.angle - 180), // Angle to get to 180°
+                            pr = rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false), // Rotate to 180°
+                            pf;
 
+                        x0 = pr[0][0]; // Save new points
+                        y0 = pr[0][1];
+                        x1 = pr[1][0];
+                        y1 = pr[1][1];
+                        x2 = pr[2][0];
+                        y2 = pr[2][1];
+
+                        ang *= -1; // Angle to undo rotation to 180°
+
+                        if (x0 <= x1) {
+                            pf = rotateAxis([[x0,y0], [x1,y1]], ang, false);
+                        } else if (x0 >= x2) {
+                            pf = rotateAxis([[x0,y0], [x2,y2]], ang, false);
+                        } else {
+                            pf = rotateAxis([[x0,y0], [x0,y1]], ang, false);
+                        }
+                        tempDist = distanceCalc(pf[0][0], pf[0][1], pf[1][0], pf[1][1]);
                         break;
                 }
                 if (bestDist >= tempDist && delLineMaxDist >= tempDist) { // closer than last best & no further than radius
@@ -464,9 +486,9 @@ function getNearest(canvas, e) {
                     bestDist = tempDist;
                     best = i;
                 }
+                break;
         }
     })
-    console.debug("Best:", bestDist);
     return best; // if none, Infinity deletes nothing in delMark
 }
 
@@ -480,7 +502,7 @@ function getNearest(canvas, e) {
  * @returns {number} - Distance between [x1,y1] & [x2,y2]
  */
 function distanceCalc(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
+    return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2); // sqrt of ((x2 - x1)^2 + (y2 - y1)^2)
 }
 
 
@@ -495,15 +517,14 @@ function rotateAxis(c, r, rad=true) {
     if (rad !== true) {
         r = r*(Math.PI/180);
     }
-    let resp = [],
+    let resp = c,
         x, y;
     c.forEach((v, i) => {
         x = v[0];
         y = v[1];
-        resp[i] = [];
 
-        resp[i][0] = (x * Math.cos(r)) + (y * Math.sin(r));
-        resp[i][1] = (-x * Math.sin(r)) + (y * Math.cos(r));
+        resp[i][0] = ((x * Math.cos(r)) + (y * Math.sin(r)));
+        resp[i][1] = ((-x * Math.sin(r)) + (y * Math.cos(r)));
     })
 
     return resp;
