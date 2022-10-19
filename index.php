@@ -5,6 +5,12 @@
         <title>Canvas Testing</title>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <style>
+            body {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
             #canvas {
                 background: url("images/moon-tutorial-2.png");
                 background-size: 100%;
