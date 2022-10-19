@@ -10,6 +10,8 @@ const minLineLength     = 45;  // Minimum length of a line
 const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
 const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
 
+let debug = false;
+
 // Setup Variables
 
 const current = {};
@@ -456,17 +458,16 @@ function getNearest(canvas, e) {
                             pr = rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false), // Rotate to 180°
                             pf;
 
-                        console.clear();
+                        /*console.clear();
                         console.debug([[x0,y0], [x1,y1], [x2,y2]]);
-                        console.debug(pr);
-                        x0 = pr[0][0]; // Save new point values
-                        y0 = pr[0][1];
-                        x1 = pr[1][0];
-                        y1 = pr[1][1];
-                        x2 = pr[2][0];
-                        y2 = pr[2][1];
+                        console.debug(pr);*/
+                        let rx0 = pr[0][0], // Save new point values
+                            rx1 = pr[1][0],
+                            ry1 = pr[1][1],
+                            rx2 = pr[2][0],
+                            ry2 = pr[2][1];
 
-                        /*
+                        /* I need the point on the line rotated-back for the answer, need to use the rotated line for checks
                         * !!!READ ME!!!
                         *
                         * You do not need to rotate the line back, just the new point!!!
@@ -475,18 +476,25 @@ function getNearest(canvas, e) {
                         * */
 
                         ang *= -1; // Angle to undo rotation to 180°
-                        console.debug(rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false, true));
+                        /*console.debug(rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false));*/
 
-                        if (x0 <= x1) {
-                            pf = rotateAxis([[x0,y0], [x1,y1]], ang, false);
-                        } else if (x0 >= x2) {
-                            pf = rotateAxis([[x0,y0], [x2,y2]], ang, false);
+                        if (rx0 <= rx1) {
+                            pf = [x1,y1];
+                        } else if (rx0 >= rx2) {
+                            pf = [x2,y2];
                         } else {
-                            pf = rotateAxis([[x0,y0], [x0,y1]], ang, false);
+                            pf = rotateAxis([[rx0,ry1]], ang, false)[0];
+                            console.debug(pf);
                         }
-                        tempDist = distanceCalc(pf[0][0], pf[0][1], pf[1][0], pf[1][1]);
+                        if (i === 0 && debug === true) {
+                            drawLine(rx1,ry1,rx2,ry2, 1);
+                            addPoint(pf[0], pf[1], 2);
+                            addPoint(x0, y0, 3);
+                        }
 
-                        tempDist = Math.abs((x2-x1) * (y1-y0) - (x1-x0) * (y2-y1)) / Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+                        tempDist = distanceCalc(x0, y0, pf[0], pf[1]);
+
+                        //tempDist = Math.abs((x2-x1) * (y1-y0) - (x1-x0) * (y2-y1)) / Math.sqrt((x2-x1)**2 + (y2-y1)**2);
                         break;
                 }
                 if (bestDist >= tempDist && delLineMaxDist >= tempDist) { // closer than last best & no further than radius
@@ -506,6 +514,7 @@ function getNearest(canvas, e) {
                 break;
         }
     })
+    console.debug(best, bestDist);
     return best; // if none, Infinity deletes nothing in delMark
 }
 
