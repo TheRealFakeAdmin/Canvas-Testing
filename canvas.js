@@ -13,6 +13,8 @@ const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136
 
 // Setup Variables
 
+const current = {};
+
 const canvas = document.getElementById('canvas'); // The Canvas
 
 const ctx = canvas.getContext("2d"); // Canvas context
@@ -249,6 +251,7 @@ function _Line2D(x1, y1, x2, y2) {
  * @param index
  */
 function drawLine(x1, y1, x2, y2, index) {
+    console.log(x1, y1, x2, y2, index);
     let ln = new Line(x1, y1, x2, y2);
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
         marks[index] = ln;
@@ -384,13 +387,15 @@ function delLastMark() {
  * @returns {number} - Index of the nearest mark
  */
 function getNearest(canvas, e) {
-    let tempDist, best = Infinity, bestDist = Infinity; // Temporary distance, Best Mark, Best Distance
-    let msPs = getPosition(canvas, e);
+    let tempDist,                    // Temporary distance
+        best = Infinity,
+        bestDist = Infinity, // Best Mark, Best Distance
+        msPs = getPosition(canvas, e),
 
-    let x0 = msPs.x,
-        y0 = msPs.y;
+        x0 = msPs.x,
+        y0 = msPs.y,
 
-    let x, y;
+        x, y;
 
     marks.forEach((v, i) => {
         console.debug(i, v);
@@ -541,6 +546,20 @@ function rotateAxis(c, r, rad=true) {
 Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps number within range
 
 
+rotateLine = (i, r, rad=true) => {
+    let ln = marks[i],
+        x1 = ln.x1,
+        y1 = ln.y1,
+        x2 = ln.x2,
+        y2 = ln.y2,
+        rt;
+
+    rt = rotateAxis([[x1,y1],[x2,y2]], r, rad);
+    drawLine(rt[0][0], rt[0][1], rt[1][0], rt[0][1], i);
+    return marks[i];
+}
+
+
 /**
  * Run when mouse button is pressed in canvas
  * @param {Event} e
@@ -557,8 +576,8 @@ function _down(e) {
     i = marks.length;
 
     let pos = getPosition(canvas, e);
-    x1 = pos.x;
-    y1 = pos.y;
+    current.x1 = pos.x;
+    current.y1 = pos.y;
 
     msdn.innerText = "True";
 
@@ -569,13 +588,13 @@ function _down(e) {
             return void(0);
         case "0": // Circle Tool
             // nice looking stuff
-            strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
+            strc.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
             break;
         case "1": // Line Tool
-            strc.innerText = `[${x1.toFixed(0)},${y1.toFixed(0)}]`;
+            strc.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
             break;
         case "2": // Point Tool
-            addPoint(pos.x, pos.y, i);
+            addPoint(current.x1, current.y1, i);
             i++;
             break;
     }
@@ -591,11 +610,11 @@ function _move(e) {
     isHover = true;
 
     let pos = getPosition(canvas, e);
-    x2 = pos.x;
-    y2 = pos.y;
+    current.x2 = pos.x;
+    current.y2 = pos.y;
 
     /// Setting Coords
-    crds.innerText = `[${x2},${y2}]`;
+    crds.innerText = `[${current.x2},${current.y2}]`;
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-1": // Delete Tool
@@ -605,19 +624,19 @@ function _move(e) {
         case "0": // Circle Tool
             if (isDown) { // if not Tool but is mousedown
                 /// draw ellipse
-                drawCircle(x1, y1, x2, y2, i);
+                drawCircle(current.x1, current.y1, current.x2, current.y2, i);
 
                 // Setting End Coords
-                endc.innerText = `[${x2},${y2}]`;
+                endc.innerText = `[${current.x2},${current.y2}]`;
             }
             break;
         case "1": // Line Tool
             if (isDown) {
                 // Draw Line
-                drawLine(x1, y1, x2, y2, i);
+                drawLine(current.x1, current.y1, current.x2, current.y2, i);
 
                 // Setting End Coords
-                endc.innerText = `[${x2},${y2}]`;
+                endc.innerText = `[${current.x2},${current.y2}]`;
             }
             break;
         case "2": // Point Tool
