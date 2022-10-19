@@ -7,10 +7,13 @@ const delPointMaxDist   = 10; // Maximum distance to delete a point (Delete Tool
 const delLineMaxDist    = 10; // Maximum distance to delete a line (Delete Tool)
 const minLineLength     = 45;  // Minimum length of a line
 
+
+// Used for testing
+let debug = false; // Toggles Debug Mode
+
 const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
 const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
 
-let debug = false;
 
 // Setup Variables
 
@@ -219,8 +222,8 @@ function drawCircle(x1, y1, x2, y2, i) {
 
 /**
  * Creates a circle mark then re-draws the canvas
- * @param {number} x - center x-coord
- * @param {number} y - center y-coord
+ * @param {number} x - Center X-Coord
+ * @param {number} y - Center Y-Coord
  * @param {number} radius - radius
  * @param {number} [index] - index of circle
  */
@@ -235,6 +238,15 @@ function addCircle(x, y, radius, index) {
 }
 
 
+/**
+ * Creates a line with end points [x1, x2] & [x2, y2]
+ * @param x1 - End Point 1 X-Coord
+ * @param y1 - End Point 1 Y-Coord
+ * @param x2 - End Point 2 X-Coord
+ * @param y2 - End Point 2 Y-Coord
+ * @returns {Path2D} -
+ * @private
+ */
 function _Line2D(x1, y1, x2, y2) {
     let ln = new Path2D();
     ln.moveTo(x1, y1);
@@ -382,7 +394,7 @@ function delLastMark() {
 
 
 /**
- * Calculates the distance of all marks then returns the nearest mark's index number.
+ * Calculates the distance of all marks to the mouse cursor then returns the index of the nearest mark.
  * @param {HTMLCanvasElement} canvas - Target Canvas
  * @param {Event} e - Mouse Event
  * @returns {number} - Index of the nearest mark
@@ -401,7 +413,7 @@ function getNearest(canvas, e) {
     marks.forEach((v, i) => {
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
-                x = v.x;
+                x = v.x; // Center Point
                 y = v.y;
                 tempDist = distanceCalc(x, y, x0, y0);
 
@@ -411,9 +423,9 @@ function getNearest(canvas, e) {
                 }
                 break;
             case 1: // Line
-                let x1 = v.x1,
+                let x1 = v.x1, // End-Point 1
                     y1 = v.y1,
-                    x2 = v.x2,
+                    x2 = v.x2, // End-Point 2
                     y2 = v.y2;
 
                 switch (v.angle) { // Line-Angle going clockwise starting at 3 o'clock == 0
@@ -458,27 +470,15 @@ function getNearest(canvas, e) {
                             pr = rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false), // Rotate to 180°
                             pf;
 
-                        /*console.clear();
-                        console.debug([[x0,y0], [x1,y1], [x2,y2]]);
-                        console.debug(pr);*/
                         let rx0 = pr[0][0], // Save new point values
                             rx1 = pr[1][0],
                             ry1 = pr[1][1],
                             rx2 = pr[2][0],
                             ry2 = pr[2][1];
 
-                        /* I need the point on the line rotated-back for the answer, need to use the rotated line for checks
-                        * !!!READ ME!!!
-                        *
-                        * You do not need to rotate the line back, just the new point!!!
-                        *
-                        * Start at ln480
-                        * */
-
                         ang *= -1; // Angle to undo rotation to 180°
-                        /*console.debug(rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false));*/
 
-                        if (rx0 <= rx1) {
+                        if (rx0 <= rx1) { // Mirror of case 180
                             pf = [x1,y1];
                         } else if (rx0 >= rx2) {
                             pf = [x2,y2];
@@ -486,15 +486,14 @@ function getNearest(canvas, e) {
                             pf = rotateAxis([[rx0,ry1]], ang, false)[0];
                             console.debug(pf);
                         }
-                        if (i === 0 && debug === true) {
+
+                        if (debug === true && i === 0) { // debug for visualizing the first line
                             drawLine(rx1,ry1,rx2,ry2, 1);
                             addPoint(pf[0], pf[1], 2);
                             addPoint(x0, y0, 3);
                         }
 
                         tempDist = distanceCalc(x0, y0, pf[0], pf[1]);
-
-                        //tempDist = Math.abs((x2-x1) * (y1-y0) - (x1-x0) * (y2-y1)) / Math.sqrt((x2-x1)**2 + (y2-y1)**2);
                         break;
                 }
                 if (bestDist >= tempDist && delLineMaxDist >= tempDist) { // closer than last best & no further than radius
@@ -503,7 +502,7 @@ function getNearest(canvas, e) {
                 }
                 break;
             case 2: // Point
-                x = v.x;
+                x = v.x; // Center Point
                 y = v.y;
                 tempDist = distanceCalc(v.x, v.y, msPs.x, msPs.y);
 
@@ -533,20 +532,22 @@ function distanceCalc(x1, y1, x2, y2) {
 
 
 /**
- * Rotate the axis.
+ * Rotates points relative to the axis
  * @param {Array} c - Array of points [[x1,y1],[x2,y2],[x3,y3],...]
  * @param {number} r - Amount of rotation in radians.
  * @param {boolean} [rad] - Set to false to use degrees with r.
  */
 function rotateAxis(c, r, rad=true) {
-    if (!Array.isArray(c) || !Number.isFinite(r)) return void(0);
-    if (rad !== true) {
+    if (!Array.isArray(c) || !Number.isFinite(r)) return void(0); // if not correct types, return void
+
+    if (rad === false) { // Converts to radians if rad === false
         r = r*(Math.PI/180);
     }
-    let resp = c,
+
+    let resp = c, // Response variable
         x, y;
 
-    c.forEach((v, i) => {
+    c.forEach((v, i) => { // For every point in c, rotate
         x = v[0];
         y = v[1];
 
@@ -566,20 +567,6 @@ function rotateAxis(c, r, rad=true) {
  * @returns {number}
  */
 Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps number within range
-
-
-rotateLine = (i, r, rad=true) => {
-    let ln = marks[i],
-        x1 = ln.x1,
-        y1 = ln.y1,
-        x2 = ln.x2,
-        y2 = ln.y2,
-        rt;
-
-    rt = rotateAxis([[x1,y1],[x2,y2]], r, rad);
-    drawLine(rt[0][0], rt[0][1], rt[1][0], rt[0][1], i);
-    return marks[i];
-}
 
 
 /**
@@ -708,10 +695,29 @@ function _up(e) {
 
 
 /**
+ * Activated during click events
+ * @param {Event} e
+ * @private
+ */
+function _click(e) {
+    isDown = false;
+    msdn.innerText = 'False';
+
+    switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case "-1": // Delete Tool
+            let nr = getNearest(canvas, e);
+            reDraw(nr); // highlight selected
+            break;
+    }
+}
+
+
+/**
  * Clears the canvas
  */
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    return void(0);
 }
 
 
@@ -787,10 +793,7 @@ function _keyPress(e) {
 /**
  * Prevents fast-clicks from keeping isDown true
  */
-addEventListener('click', () => {
-    isDown = false;
-    msdn.innerText = 'False';
-});
+addEventListener('click', _click);
 
 //addEventListener('click', _up);
 
