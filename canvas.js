@@ -1,11 +1,22 @@
 // Settings
 
+
+/* Circles/Craters */
 const minCraterSize     = 18; // Minimum crater size
 const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle (Delete Tool)
+const rszCircleThresh   = 5;  // Threshold (like radius) of circle resize (Edit Tool)
+
+/* Points */
 const pointRadius       = 10; // Radius of the point
 const delPointMaxDist   = 10; // Maximum distance to delete a point (Delete Tool)
+
+/* Lines */
 const delLineMaxDist    = 10; // Maximum distance to delete a line (Delete Tool)
-const minLineLength     = 45;  // Minimum length of a line
+const minLineLength     = 45; // Minimum length of a line
+const endPtMaxDist      = 5;  // Maximum distance to select end-point (Edit Tool)
+
+
+// --- END OF SETTINGS --- //
 
 
 // Used for testing
@@ -35,13 +46,10 @@ const msdn = document.getElementById('mouse-down');
 
 const marks = []; // Array of all the marks
 
-let x1,                 /// start point
-    y1,
-    x2,                 /// end point
-    y2,
-    center,
+let center,
     radius,
     i = 0,
+    slctd = {},
     isHover = false,
     isDown = false;     /// if mouse button is down
 
@@ -60,9 +68,11 @@ canvas.height = 450; // Height of the canvas
 class Circle {
     /**
      * Creates the representation of a circle. Used in the marks array.
-     * @param x - Center x-coord
-     * @param y - Center y-coord
-     * @param radius - radius of the circle
+     * @param {number} x - Center x-coord
+     * @param {number} y - Center y-coord
+     * @param {number} radius - radius of the circle
+     *
+     * @returns {{timestamp: number, type: 0, x: number, y: number, d: number, r: number}}
      */
     constructor(x, y, radius) {
         this.timestamp = Date.now();
@@ -78,17 +88,18 @@ class Circle {
 
 /**
  * Standardized Lines, what more could you want! :)
- *
  * @example new Line(2, 5, 8, 13);
  */
 class Line {
     /**
      * Creates the representation of a line. Used in the marks array.
      *
-     * @param x1 - Point-1 X-Coord
-     * @param y1 - Point-1 Y-Coord
-     * @param x2 - Point-2 X-Coord
-     * @param y2 - Point-2 Y-Coord
+     * @param {number} x1 - Point-1 X-Coord
+     * @param {number} y1 - Point-1 Y-Coord
+     * @param {number} x2 - Point-2 X-Coord
+     * @param {number} y2 - Point-2 Y-Coord
+     *
+     * @returns {{timestamp: number, type: 1, x1: number, y1: number, x2: number, y2: number, center: {x: number, y: number}, angle: number, length: number}} Line
      */
     constructor(x1, y1, x2, y2) {
         this.timestamp = Date.now();
@@ -119,8 +130,10 @@ class Line {
 class Point {
     /**
      * Creates the representation of a point. Used in the marks array.
-     * @param x - X-Coord
-     * @param y - Y-Coord
+     * @param {number} x - X-Coord
+     * @param {number} y - Y-Coord
+     *
+     * @returns {{timestamp: number, type: 2, x: number, y: number}}
      */
     constructor(x, y) {
         this.timestamp = Date.now();
@@ -135,10 +148,13 @@ class Point {
 // Setup Functions
 
 /**
- * Gets scaled mouse position inside canvas.
+ * Using the offset of the canvas from the page [0,0], the mouse position is calculated
+ * to get the position of the point [P0] in the canvas.
+ *
+ * @summary Gets mouse position using canvas as reference.
  * @param {HTMLCanvasElement} canvas - Target canvas
- * @param {Event} event - Input event
- * @returns {{x: number, y: number}} - Scaled coords
+ * @param {MouseEvent} event - Mouse event
+ * @returns {{x: number, y: number}} - True coords
  * @private
  */
 function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
@@ -154,14 +170,25 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
 
 
 /**
- * Get position of mouse relative to Canvas
+ * Using the offset of the canvas from the page [0,0], the mouse position is calculated
+ * to get the position of the point [P0] in the canvas.
+ *
+ * @summary Get position of mouse relative to Canvas
  * @param {HTMLCanvasElement} canvas - Target canvas
- * @param {Event} event - Event input
- * @param {false|number} toFixed - `Number.prototype.toFixed` argument
+ * @param {MouseEvent} event - Mouse event
+ * @param {boolean} [toFixed] - `Number.prototype.toFixed` argument
  * @returns {{x: (number|string), y: (number|string)}}
  */
-function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? Is it dupe of _getMousePos?
-    let mp = _getMousePos(canvas, event);
+function getPosition(canvas, event, toFixed=false) {
+    let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
+    let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
+        scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
+
+    let mp = {
+        x: (event.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
+        y: (event.clientY - rect.top) * scaleY     // been adjusted to be relative to element
+    }
+
     let x, y;
     switch(toFixed) {
         case false:
@@ -181,11 +208,11 @@ function getPosition(canvas, event, toFixed=false) { // TODO : Is this useful? I
 
 
 /**
- * Creates a circle Path2D
+ * Creates a Path2D containing a circle
  * @param {number} x - Center x-position
  * @param {number} y - Center y-position
  * @param {number} radius - Radius of the circle
- * @returns {Path2D} - Circle wrapped in a Path2D // FIXME : is it wrapped?
+ * @returns {Path2D} - Circle wrapped in a Path2D
  * @private
  */
 function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a private function ("_" prefix) and what is not
@@ -196,14 +223,14 @@ function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a priva
 
 
 /**
- * Draws circle using 2 points
+ * Draws circle using 2 points [<u>P</u>oint to <u>P</u>oint]
  * @param {number} x1 - Point 1 x-coord
  * @param {number} y1 - Point 1 y-coord
  * @param {number} x2 - Point 2 x-coord
  * @param {number} y2 - Point 2 y-coord
  * @param {number} i - Current index of `marks`
  */
-function drawCircle(x1, y1, x2, y2, i) {
+function addCircleP2P(x1, y1, x2, y2, i) {
     center = {
         x: (x1 + x2) / 2,
         y: (y1 + y2) / 2
@@ -216,25 +243,24 @@ function drawCircle(x1, y1, x2, y2, i) {
 
     rdus.innerText = radius.toFixed(3);
 
-    addCircle(center.x, center.y, radius, i);
+    addCirclePR(center.x, center.y, radius, i);
 }
 
 
 /**
- * Creates a circle mark then re-draws the canvas
+ * Creates a circle using a center point and radius [<u>P</u>oint & <u>R</u>adius]
  * @param {number} x - Center X-Coord
  * @param {number} y - Center Y-Coord
  * @param {number} radius - radius
  * @param {number} [index] - index of circle
  */
-function addCircle(x, y, radius, index) {
+function addCirclePR(x, y, radius, index) {
     let crcl = new Circle(x, y, radius);
 
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
         marks[index] = crcl;
     else
         marks.push(crcl);
-    reDraw();
 }
 
 
@@ -263,7 +289,7 @@ function _Line2D(x1, y1, x2, y2) {
  * @param y2 - Point-2 Y-Coord
  * @param index
  */
-function drawLine(x1, y1, x2, y2, index) {
+function drawLineP2P(x1, y1, x2, y2, index) {
     console.log(x1, y1, x2, y2, index);
     let ln = new Line(x1, y1, x2, y2);
     if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
@@ -313,6 +339,7 @@ function addPoint(x, y, index) {
 /**
  * Clears canvas then loops through all marks to re-draw
  *
+ * @param {number} [i] - index to highlight
  * @note ctx.strokeStyle = "#f8b31f";<br>ctx.fillStyle = "#f8b31f33";
  */
 function reDraw(i) {
@@ -330,12 +357,12 @@ function reDraw(i) {
             case 0: // Circle
                 tmp = _Circle2D(v.x, v.y, (v.r)); // Circle with center [x,y] & radius = diameter/2
                 ctx.lineWidth = 2;
-                if (j === i) { // if Selected
-                    ctx.strokeStyle = "#fff";
-                    ctx.fillStyle = "#fff3";
-                } else if ((v.d) < minCraterSize) { // if too small
+                if ((v.d) < minCraterSize) { // if too small
                     ctx.strokeStyle = "#f00";
                     ctx.fillStyle = "#f003";
+                } else if (j === i) { // if Selected
+                    ctx.strokeStyle = "#fff";
+                    ctx.fillStyle = "#fff3";
                 } else {
                     ctx.strokeStyle = "#f8b31f";
                     ctx.fillStyle = "#f8b31f33"; // #f8b31f33
@@ -348,10 +375,10 @@ function reDraw(i) {
                 tmp = _Line2D(v.x1, v.y1, v.x2, v.y2);
                 ctx.beginPath();
                 ctx.lineWidth = 5;
-                if (j === i) { // if Selected
-                    ctx.strokeStyle = "#fffa";
-                } else if (v.length < minLineLength) { // if no long enough
+                if (v.length < minLineLength) { // if too short
                     ctx.strokeStyle = "#f00a";
+                } else if (j === i) { // if Selected
+                    ctx.strokeStyle = "#fffa";
                 } else {
                     ctx.strokeStyle = "#601a4aaa"; // #5a368daa
                 }
@@ -396,10 +423,11 @@ function delLastMark() {
 /**
  * Calculates the distance of all marks to the mouse cursor then returns the index of the nearest mark.
  * @param {HTMLCanvasElement} canvas - Target Canvas
- * @param {Event} e - Mouse Event
+ * @param {MouseEvent} e - Mouse Event
+ * @param {boolean} [limit] - If false, circle max distance is `radius+rszCircleThresh`
  * @returns {number} - Index of the nearest mark
  */
-function getNearest(canvas, e) {
+function getNearest(canvas, e, limit=true) {
     let tempDist,                    // Temporary distance
         best = Infinity,
         bestDist = Infinity, // Best Mark, Best Distance
@@ -410,14 +438,14 @@ function getNearest(canvas, e) {
 
         x, y;
 
-    marks.forEach((v, i) => {
+    marks.forEach((v, i) => { console.debug(v, i);
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
                 x = v.x; // Center Point
                 y = v.y;
                 tempDist = distanceCalc(x, y, x0, y0);
 
-                if (bestDist >= tempDist && v.r >= tempDist && tempDist <= delCircleMaxDist) { // closer or equal to last best & no further than radius
+                if (bestDist >= tempDist && (v.r + (limit ? 0 : rszCircleThresh)) >= tempDist && tempDist <= (limit ? delCircleMaxDist : v.r + rszCircleThresh)) { // closer or equal to last best & no further than radius
                     bestDist = tempDist;
                     best = i;
                 }
@@ -484,11 +512,10 @@ function getNearest(canvas, e) {
                             pf = [x2,y2];
                         } else {
                             pf = rotateAxis([[rx0,ry1]], ang, false)[0];
-                            console.debug(pf);
                         }
 
                         if (debug === true && i === 0) { // debug for visualizing the first line
-                            drawLine(rx1,ry1,rx2,ry2, 1);
+                            drawLineP2P(rx1,ry1,rx2,ry2, 1);
                             addPoint(pf[0], pf[1], 2);
                             addPoint(x0, y0, 3);
                         }
@@ -513,17 +540,82 @@ function getNearest(canvas, e) {
                 break;
         }
     })
-    console.debug(best, bestDist);
+
     return best; // if none, Infinity deletes nothing in delMark
 }
 
 
 /**
- * Returns the distance between two points.
- * @param x1 - Point 1 X-Position
- * @param y1 - Point 1 Y-Position
- * @param x2 - Point 2 X-Position
- * @param y2 - Point 2 Y-Position
+ * Returns nearest endpoint
+ * @deprecated No need to loop through all marks to find nearest end-pts
+ * @use {@link getEndPt}
+ * @param {HTMLCanvasElement} canvas
+ * @param {MouseEvent} e
+ * @returns {{bestDist: number, best: number}}
+ */
+function findNearestEndPoints (canvas, e) {
+    marks.forEach((v) => {
+        if (v.type === 1) { // if Line
+            let msPs = getPosition(canvas, e),
+                best = Infinity,
+                bestDist = Infinity,
+                x1 = v.x1, // End-Point 1
+                y1 = v.y1,
+                x2 = v.x2, // End-Point 2
+                y2 = v.y2,
+                d1 = distanceCalc(msPs.x, msPs.y, x1, y1),
+                d2 = distanceCalc(msPs.x, msPs.y, x2, y2),
+                tempDist = Math.min(d1, d2),
+                pn = (d1 === tempDist) ? 1 : 2;
+
+            if (bestDist >= tempDist && delPointMaxDist >= tempDist) { // closer than last best & no further than radius
+                bestDist = tempDist;
+                best = pn;
+            }
+        }
+    })
+
+    return {best: best, bestDist: bestDist};
+}
+
+
+/**
+ * Returns line endpoint nearest to the mouse
+ * @param {number} index - Index number for `marks`
+ * @param {getPosition} msPs - Mouse positon
+ * @returns {number} - Endpoint [P1=>1, P2=>2]
+ */
+function getEndPt (index, msPs) {
+    let v = marks[index];
+    let pt = Infinity, // Represents which end-point is closest; 1 or 2
+        d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
+        d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
+        dist = Math.min(d1, d2), // Gets nearest distance
+        pn;
+
+    switch (dist) {
+        case d1:
+            pn = 1;
+            break;
+        case d2:
+            pn = 2;
+            break;
+    }
+
+    if (endPtMaxDist >= dist) { // if close enough to end point
+        pt = pn;
+    }
+    console.log(pt);
+    return pt;
+}
+
+
+/**
+ * Returns the distance between two points
+ * @param {number} x1 - Point 1 X-Position
+ * @param {number} y1 - Point 1 Y-Position
+ * @param {number} x2 - Point 2 X-Position
+ * @param {number} y2 - Point 2 Y-Position
  * @returns {number} - Distance between [x1,y1] & [x2,y2]
  */
 function distanceCalc(x1, y1, x2, y2) {
@@ -534,8 +626,8 @@ function distanceCalc(x1, y1, x2, y2) {
 /**
  * Rotates points relative to the axis
  * @param {Array} c - Array of points [[x1,y1],[x2,y2],[x3,y3],...]
- * @param {number} r - Amount of rotation in radians.
- * @param {boolean} [rad] - Set to false to use degrees with r.
+ * @param {number} r - Amount of rotation in radians
+ * @param {boolean} [rad=true] - Set to false to use degrees with r
  */
 function rotateAxis(c, r, rad=true) {
     if (!Array.isArray(c) || !Number.isFinite(r)) return void(0); // if not correct types, return void
@@ -571,12 +663,12 @@ Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps num
 
 /**
  * Run when mouse button is pressed in canvas
- * @param {Event} e
+ * @param {MouseEvent} e
  * @private
  */
 function _down(e) {
     if (isDown || e.button !== 0) { // left/main click === e.button of 0
-        console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");
+        /*console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");*/
         _up(e);
         return;
     }
@@ -590,9 +682,36 @@ function _down(e) {
 
     msdn.innerText = "True";
 
+    let nr;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case "-2": // Edit Tool
+            if ((nr = getNearest(canvas, e, false)) === Infinity) break;
+
+            slctd.i = nr;
+            switch (marks[nr].type) {
+                case 0: // Circle
+                    let dst = distanceCalc(pos.x, pos.y, marks[nr].x, marks[nr].y);
+                    console.debug(dst);
+                    if (dst >= (marks[nr].r - rszCircleThresh) && dst <= (marks[nr].r + rszCircleThresh)) { // if distance to center is within threshold, do resize mode
+                        console.debug('RESIZE');
+                        slctd.mode = 1; // Resize Mode
+                    } else { // else, do move mode
+                        slctd.mode = 2; // Move mode continues to next case
+                        slctd.offset = [(marks[nr].x - pos.x), (marks[nr].y - pos.y)];
+                    }
+                    break;
+                case 1: // Line
+                    /*slctd.offset = [[(marks[nr].x1 - pos.x), (marks[nr].y1 - pos.y)], [(marks[nr].x2 - pos.x), (marks[nr].y2 - pos.y)]];*/
+                    slctd.endPtId = getEndPt(nr, pos);
+                    break;
+                case 2: // Point
+                    slctd.offset = [(marks[nr].x - pos.x), (marks[nr].y - pos.y)];
+                    break;
+            }
+            console.debug(slctd);
+            break;
         case "-1": // Delete Tool
-            let nr = getNearest(canvas, e);
+            nr = getNearest(canvas, e);
             delMark(nr);
             return void(0);
         case "0": // Circle Tool
@@ -612,7 +731,7 @@ function _down(e) {
 
 /**
  * Run when mouse is moved on canvas
- * @param {Event} e
+ * @param {MouseEvent} e
  * @private
  */
 function _move(e) {
@@ -625,15 +744,70 @@ function _move(e) {
     /// Setting Coords
     crds.innerText = `[${current.x2},${current.y2}]`;
 
+    let mk, nr, dst, x, y, x1, y1, x2, y2;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case "-2": // Edit Tool
+            mk = marks[slctd.i];
+            nr = getNearest(canvas, e, false);
+            reDraw(nr); // highlight selected
+
+            if (slctd.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
+            switch (mk.type) {
+                case 0: // Circle
+                    dst = distanceCalc(pos.x, pos.y, mk.x, mk.y);
+                    switch (slctd.mode) {
+                        case 1: // Resize
+                            addCirclePR(mk.x, mk.y, dst, slctd.i);
+                            break;
+                        case 2: // Move
+                            x = pos.x + slctd.offset[0];
+                            y = pos.y + slctd.offset[1];
+                            addCirclePR(x, y, mk.r, slctd.i);
+                            break;
+                    }
+                    break;
+                case 1: // Line
+                    /*x1 = pos.x + slctd.offset[0][0];
+                    y1 = pos.y + slctd.offset[0][1];
+                    x2 = pos.x + slctd.offset[1][0];
+                    y2 = pos.y + slctd.offset[1][1];
+                    drawLine(x1, y1, x2, y2, slctd.i);*/
+                    switch (slctd.endPtId) {
+                        case 1:
+                            x1 = pos.x;
+                            y1 = pos.y;
+                            x2 = mk.x2;
+                            y2 = mk.y2;
+                            break;
+                        case 2:
+                            x1 = mk.x1;
+                            y1 = mk.y1;
+                            x2 = pos.x;
+                            y2 = pos.y;
+                            break;
+                        default:
+                            [x1, y1, x2, y2] = [mk.x1, mk.y1, mk.x2, mk.y2];
+                            break;
+                    }
+                    drawLineP2P(x1, y1, x2, y2, slctd.i);
+                    break;
+                case 2: // Point
+                    x = pos.x + slctd.offset[0];
+                    y = pos.y + slctd.offset[1];
+                    addPoint(x, y, slctd.i);
+                    break;
+            }
+            reDraw(slctd.i);
+            break;
         case "-1": // Delete Tool
-            let nr = getNearest(canvas, e);
+            nr = getNearest(canvas, e);
             reDraw(nr); // highlight selected
             break;
         case "0": // Circle Tool
             if (isDown) { // if not Tool but is mousedown
                 /// draw ellipse
-                drawCircle(current.x1, current.y1, current.x2, current.y2, i);
+                addCircleP2P(current.x1, current.y1, current.x2, current.y2, i);
+                reDraw();
 
                 // Setting End Coords
                 endc.innerText = `[${current.x2},${current.y2}]`;
@@ -642,7 +816,7 @@ function _move(e) {
         case "1": // Line Tool
             if (isDown) {
                 // Draw Line
-                drawLine(current.x1, current.y1, current.x2, current.y2, i);
+                drawLineP2P(current.x1, current.y1, current.x2, current.y2, i);
 
                 // Setting End Coords
                 endc.innerText = `[${current.x2},${current.y2}]`;
@@ -659,33 +833,48 @@ function _move(e) {
 
 /**
  * Run when mouse button is released in canvas (or exiting canvas)
- * @param {Event} e
+ * @param {MouseEvent} e
  * @private
  */
 function _up(e) {
     isHover = false;
-    if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
 
     // real work
     isDown = false; // clear isDown flag to stop drawing
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
+        case '-2': // Edit Tool
+            if ((slctd.i === undefined)) return; // if already up, don't do anything
+            switch (marks[slctd.i].type) {
+                case 0: // Circle
+                    if (marks[slctd.i].d < minCraterSize)
+                        delMark(slctd.i);
+                    break;
+                case 1: // Line
+                    if (marks[slctd.i].length < minLineLength)
+                        delMark(slctd.i);
+                    break;
+            }
+            break;
         case '0': // Circle Tool
+            if (marks[i] === undefined) return; // if already up, don't do anything
             if (marks[i].d < minCraterSize)
                 delMark(i);
             break;
         case '1': // Line Tool
+            if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
             if (marks[i].length < minLineLength)
                 delMark(i);
             break;
         case '2': // Point
+            if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
             break;
     }
 
     reDraw();
 
     // nice looking stuff
-    let cv = _getMousePos(canvas, e);
+    let cv = getPosition(canvas, e);
     endc.innerText = `[${cv.x},${cv.y}]`;
     msdn.innerText = 'False';
 
@@ -696,7 +885,10 @@ function _up(e) {
 
 /**
  * Activated during click events
- * @param {Event} e
+ * <br>
+ * *Note click events are set to run immediately AFTER {@link _up mouseup} events
+ * [src: {@link https://stackoverflow.com/questions/34715420/mouseup-vs-click|here}]
+ * @param {MouseEvent} e
  * @private
  */
 function _click(e) {
@@ -705,8 +897,10 @@ function _click(e) {
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-1": // Delete Tool
+        case "-2":
             let nr = getNearest(canvas, e);
             reDraw(nr); // highlight selected
+            slctd = {};
             break;
     }
 }
@@ -761,24 +955,40 @@ function _receive() {
     http.send();
 }
 
+
+/**
+ * On keypress, run
+ * @param {KeyboardEvent} e
+ * @private
+ */
 function _keyPress(e) {
     if (!isHover) return;
-    switch (e.keyCode) {
-        case 100: // d
+    console.info(e.key);
+    switch (e.key) {
+        case 'd': // d - Delete
+        case 'D':
             e.preventDefault();
             document.querySelector('#delTool').click();
             break;
-        case 99: // c
+        case 'c': // c - Circle
+        case 'C':
             e.preventDefault();
             document.querySelector('#circleTool').click();
             break;
-        case 108: // l
+        case 'l': // l - Line
+        case 'L':
             e.preventDefault();
             document.querySelector('#lineTool').click();
             break;
-        case 112: // p
+        case 'p': // p - Point
+        case 'P':
             e.preventDefault();
             document.querySelector('#pointTool').click();
+            break;
+        case 'e': // e - Edit
+        case 'E':
+            e.preventDefault();
+            document.querySelector('#editTool').click();
             break;
     }
 }
@@ -814,9 +1024,17 @@ addEventListener('keypress', _keyPress);
 reDraw();
 
 
-/* 
- * https://stackoverflow.com/questions/32736999/remove-circle-drawn-in-html5-canvas-once-user-clicks-on-it
- * https://developer.mozilla.org/en-US/docs/Web/API/Path2D/Path2D
- * https://stackoverflow.com/questions/21594756/drawing-circle-ellipse-on-html5-canvas-using-mouse-events
+/* Sources & Starting Points:
+ *
+ * How to calculate the new coordinates by rotation of axes
  * https://keisan.casio.com/exec/system/1223522781
+ *
+ *
+ * https://stackoverflow.com/questions/32736999/remove-circle-drawn-in-html5-canvas-once-user-clicks-on-it
+ *
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/Path2D/Path2D
+ *
+ *
+ * https://stackoverflow.com/questions/21594756/drawing-circle-ellipse-on-html5-canvas-using-mouse-events
 */

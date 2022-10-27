@@ -18,6 +18,7 @@
         </style>
     </head>
     <body>
+
         <div>
             <canvas id="canvas">This browser does not support the HTML5 canvas tag.</canvas>
         </div>
@@ -40,14 +41,16 @@
             <!--<input type="checkbox" id="delTool"><label for="delTool"> Delete Tool</label>-->
             <div>
                 <p>Select tool:</p>
+                <input type="radio" id="editTool" name="tool" value="-2">
+                <label for="editTool"><u>E</u>dit Tool</label><br>
                 <input type="radio" id="delTool" name="tool" value="-1">
-                <label for="delTool">Delete Tool</label><br>
+                <label for="delTool"><u>D</u>elete Tool</label><br>
                 <input checked="checked" type="radio" id="circleTool" name="tool" value="0">
-                <label for="circleTool">Circle Tool</label><br>
+                <label for="circleTool"><u>C</u>ircle Tool</label><br>
                 <input type="radio" id="lineTool" name="tool" value="1">
-                <label for="lineTool">Line Tool</label><br>
+                <label for="lineTool"><u>L</u>ine Tool</label><br>
                 <input type="radio" id="pointTool" name="tool" value="2">
-                <label for="pointTool">Point Tool</label>
+                <label for="pointTool"><u>P</u>oint Tool</label>
             </div>
         </div>
 
