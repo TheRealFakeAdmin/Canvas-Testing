@@ -37,7 +37,7 @@
             <button onclick="_send()">Send</button>
             <button onclick="_receive()">Receive</button><br>
             <button onclick="delLastMark();">Undo</button>
-            <button onclick="marks.length = 0; reDraw();">Reset</button><br>
+            <button onclick="LOREM_IPSUM.marks.length = 0; reDraw();">Reset</button><br>
             <!--<input type="checkbox" id="delTool"><label for="delTool"> Delete Tool</label>-->
             <div>
                 <p>Select tool:</p>

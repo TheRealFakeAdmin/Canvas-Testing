@@ -45,28 +45,18 @@ Object.assign(window, {
     },
     LOREM_IPSUM: {
         marks: [], // List of all marks
+        selected: {}, // Selected mark
+        latest: {
+            i: 0,
+            center: undefined,
+            radius: undefined
+        }, // Latest information data, used for text bellow canvas
         center: undefined, // See original `let center`
         radius: undefined,
-        i: 0,
-        selected: {}, // Selected mark
-        current: {}, // Latest information data, used for text bellow canvas
         isDown: false, // True when mouse is down over canvas
         isHover: false // True when mouse hovers over canvas
     }
 });
-
-// Setup Variables
-
-const current = {};
-
-const marks = []; // Array of all the marks
-
-let center, // FIXME : center, radius, & i seem like a duplicate use of current
-    radius,
-    i = 0,
-    slctd = {},
-    isHover = false,
-    isDown = false;     /// if mouse button is down
 
 
 // Setup Canvas
@@ -162,26 +152,26 @@ class Point {
 
 // Setup Functions
 
-/**
- * Using the offset of the canvas from the page [0,0], the mouse position is calculated
- * to get the position of the point [P0] in the canvas.
- *
- * @summary Gets mouse position using canvas as reference.
- * @param {HTMLCanvasElement} canvas - Target canvas
- * @param {MouseEvent} event - Mouse event
- * @returns {{x: number, y: number}} - True coords
- * @private
- */
-function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
-    let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
-    let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
-        scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
-
-    return {
-        x: (event.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
-        y: (event.clientY - rect.top) * scaleY     // been adjusted to be relative to element
-    }
-}
+// /**
+//  * Using the offset of the canvas from the page [0,0], the mouse position is calculated
+//  * to get the position of the point [P0] in the canvas.
+//  *
+//  * @summary Gets mouse position using canvas as reference.
+//  * @param {HTMLCanvasElement} canvas - Target canvas
+//  * @param {MouseEvent} event - Mouse event
+//  * @returns {{x: number, y: number}} - True coords
+//  * @private
+//  */
+// function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/scale
+//     let rect = canvas.getBoundingClientRect(); // Bounding box of the canvas
+//     let scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
+//         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
+//
+//     return {
+//         x: (event.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
+//         y: (event.clientY - rect.top) * scaleY     // been adjusted to be relative to element
+//     }
+// }
 
 
 /**
@@ -191,7 +181,7 @@ function _getMousePos(canvas, event) { // REMEMBER : This is like a percentage/s
  * @summary Get position of mouse relative to Canvas
  * @param {HTMLCanvasElement} canvas - Target canvas
  * @param {MouseEvent} event - Mouse event
- * @param {boolean} [toFixed] - `Number.prototype.toFixed` argument
+ * @param {boolean} [toFixed=false] - `Number.prototype.toFixed` argument
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) {
@@ -206,13 +196,13 @@ function getPosition(canvas, event, toFixed=false) {
 
     let x, y;
     switch(toFixed) {
-        case false:
-            x = mp.x;
-            y = mp.y;
-            break;
-        default:
+        case true:
             x = mp.x.toFixed(toFixed);
             y = mp.y.toFixed(toFixed);
+            break;
+        default:
+            x = mp.x;
+            y = mp.y;
             break;
     }
 
@@ -247,19 +237,19 @@ function _Circle2D(x, y, radius) { // TODO : Re-Think what is considered a priva
  * @param {number} i - Current index of `marks`
  */
 function addCircleP2P(x1, y1, x2, y2, i) {
-    center = {
+    LOREM_IPSUM.latest.center = {
         x: (x1 + x2) / 2,
         y: (y1 + y2) / 2
     }
 
-    radius = distanceCalc(center.x, center.y, x1, y1);
+    LOREM_IPSUM.latest.radius = distanceCalc(LOREM_IPSUM.latest.center.x, LOREM_IPSUM.latest.center.y, x1, y1);
 
-    TEXT_INFO.centerCoords.innerText = `[${center.x},${center.y}]`;
-    console.debug("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
+    TEXT_INFO.centerCoords.innerText = `[${LOREM_IPSUM.latest.center.x},${LOREM_IPSUM.latest.center.y}]`;
+    console.debug("p1: " + [x1,y1], "\npc: " + [LOREM_IPSUM.latest.center.x,LOREM_IPSUM.latest.center.y], "\np2: " + [x2,y2], "\nradius: " + LOREM_IPSUM.latest.radius);
 
-    TEXT_INFO.radius.innerText = radius.toFixed(3);
+    TEXT_INFO.radius.innerText = LOREM_IPSUM.latest.radius.toFixed(3);
 
-    addCirclePR(center.x, center.y, radius, i);
+    addCirclePR(LOREM_IPSUM.latest.center.x, LOREM_IPSUM.latest.center.y, LOREM_IPSUM.latest.radius, i);
 }
 
 
@@ -273,14 +263,14 @@ function addCircleP2P(x1, y1, x2, y2, i) {
 function addCirclePR(x, y, radius, index) {
     let crcl = new Circle(x, y, radius);
 
-    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
-        marks[index] = crcl;
+    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+        LOREM_IPSUM.marks[index] = crcl;
     else
-        marks.push(crcl);
+        LOREM_IPSUM.marks.push(crcl);
 }
 
 
-// /**
+// /** // TODO : Complete this
 //  * Draw resize arrow using the mouse position and the circle's index
 //  * @param {HTMLCanvasElement} canvas - Canvas element
 //  * @param {MouseEvent} e - Mouse event
@@ -306,10 +296,10 @@ function addCirclePR(x, y, radius, index) {
 
 /**
  * Creates a line with end points [x1, x2] & [x2, y2]
- * @param x1 - End Point 1 X-Coord
- * @param y1 - End Point 1 Y-Coord
- * @param x2 - End Point 2 X-Coord
- * @param y2 - End Point 2 Y-Coord
+ * @param {number} x1 - End Point 1 X-Coord
+ * @param {number} y1 - End Point 1 Y-Coord
+ * @param {number} x2 - End Point 2 X-Coord
+ * @param {number} y2 - End Point 2 Y-Coord
  * @returns {Path2D} -
  * @private
  */
@@ -323,19 +313,19 @@ function _Line2D(x1, y1, x2, y2) {
 
 /**
  * Creates and saves a line to marks array.
- * @param x1 - Point-1 X-Coord
- * @param y1 - Point-1 Y-Coord
- * @param x2 - Point-2 X-Coord
- * @param y2 - Point-2 Y-Coord
+ * @param {number} x1 - Point-1 X-Coord
+ * @param {number} y1 - Point-1 Y-Coord
+ * @param {number} x2 - Point-2 X-Coord
+ * @param {number} y2 - Point-2 Y-Coord
  * @param index
  */
 function drawLineP2P(x1, y1, x2, y2, index) {
     console.log(x1, y1, x2, y2, index);
     let ln = new Line(x1, y1, x2, y2);
-    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
-        marks[index] = ln;
+    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+        LOREM_IPSUM.marks[index] = ln;
     else
-        marks.push(ln);
+        LOREM_IPSUM.marks.push(ln);
     reDraw();
 
     TEXT_INFO.length.innerText = ln.length.toFixed(3);
@@ -348,8 +338,8 @@ function drawLineP2P(x1, y1, x2, y2, index) {
 
 /**
  * Creates a Path2D point
- * @param x - x-position
- * @param y - y-position
+ * @param {number} x - X-Position
+ * @param {number} y - Y-Position
  * @returns {Path2D}
  * @private
  */
@@ -362,17 +352,17 @@ function _Point2D(x, y) {
 
 /**
  * Add point to the marks list
- * @param x - x-position
- * @param y - y-position
- * @param index
+ * @param {number} x - X-Position
+ * @param {number} y - Y-Position
+ * @param {number} index - Index to add point to
  */
 function addPoint(x, y, index) {
     let pt = new Point(x, y);
 
-    if (typeof index === "number" && 0 <= index <= marks.length) // if index is specified
-        marks[index] = pt;
+    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+        LOREM_IPSUM.marks[index] = pt;
     else
-        marks.push(pt);
+        LOREM_IPSUM.marks.push(pt);
     reDraw();
     return void(0);
 }
@@ -388,8 +378,8 @@ function reDraw(i) {
     let tmp, v, ctx = CSB_APP.ctx;
     clearCanvas();
 
-    for(let j = 0; j < marks.length; j++) {
-        v = marks[j];
+    for(let j = 0; j < LOREM_IPSUM.marks.length; j++) {
+        v = LOREM_IPSUM.marks[j];
         if (v === undefined) { // Self Healing (if empty)
             delMark(j); // Delete empty index
             --j;        // then go back one because one was deleted
@@ -448,7 +438,7 @@ function reDraw(i) {
  * @param {number} i - index of mark
  */
 function delMark(i) {
-    marks.splice(i, 1);
+    LOREM_IPSUM.marks.splice(i, 1);
     reDraw();
     return void(0);
 }
@@ -460,7 +450,7 @@ function delMark(i) {
  * *Does not go off of timestamps
  */
 function delLastMark() {
-    delMark(marks.length - 1);
+    delMark(LOREM_IPSUM.marks.length - 1);
     return void(0);
 }
 
@@ -483,7 +473,7 @@ function getNearest(canvas, e, limit=true) {
 
         x, y;
 
-    marks.forEach((v, i) => { console.debug(v, i);
+    LOREM_IPSUM.marks.forEach((v, i) => { console.debug(v, i);
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
                 x = v.x; // Center Point
@@ -593,35 +583,35 @@ function getNearest(canvas, e, limit=true) {
 
 
 
-// /**
-//  * Returns line endpoint nearest to the mouse
-//  * @param {number} index - Index number for `marks`
-//  * @param {{x: number, y: number}} msPs - Mouse position ({@link getPosition})
-//  * @returns {number} - Endpoint [P1=>1, P2=>2]
-//  */
-// function getEndPt (index, msPs) {
-//     let v = marks[index];
-//     let pt = Infinity, // Represents which end-point is closest; 1 or 2
-//         d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
-//         d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
-//         dist = Math.min(d1, d2), // Gets nearest distance
-//         pn;
-//
-//     switch (dist) {
-//         case d1:
-//             pn = 1;
-//             break;
-//         case d2:
-//             pn = 2;
-//             break;
-//     }
-//
-//     if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
-//         pt = pn;
-//     }
-//     console.log(pt);
-//     return pt;
-// }
+/**
+ * Returns line endpoint nearest to the mouse
+ * @param {number} index - Index number for `marks`
+ * @param {{x: number, y: number}} msPs - Mouse position ({@link getPosition})
+ * @returns {number} - Endpoint [P1=>1, P2=>2]
+ */
+function getEndPt (index, msPs) {
+    let v = LOREM_IPSUM.marks[index];
+    let pt = Infinity, // Represents which end-point is closest; 1 or 2
+        d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
+        d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
+        dist = Math.min(d1, d2), // Gets nearest distance
+        pn;
+
+    switch (dist) {
+        case d1:
+            pn = 1;
+            break;
+        case d2:
+            pn = 2;
+            break;
+    }
+
+    if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
+        pt = pn;
+    }
+    console.log(pt);
+    return pt;
+}
 
 
 /**
@@ -641,7 +631,7 @@ function distanceCalc(x1, y1, x2, y2) {
  * Rotates points relative to the axis
  * @param {Array} c - Array of points [[x1,y1],[x2,y2],[x3,y3],...]
  * @param {number} r - Amount of rotation in radians
- * @param {boolean} [rad=true] - Set to false to use degrees with r
+ * @param {boolean} [rad=true] - Set as false to use degrees with r
  */
 function rotateAxis(c, r, rad=true) {
     if (!Array.isArray(c) || !Number.isFinite(r)) return void(0); // if not correct types, return void
@@ -666,10 +656,45 @@ function rotateAxis(c, r, rad=true) {
 
 
 /**
+ * Rotates a point around another.
+ * @param {Array[[[x: number, y: number], ...[x: number, y: number]]]} c - Array of points to be rotated
+ * @param {Array[[x: number, y: number]]} rp - Point to rotate around; Represented as an array
+ * @param {number} r - Amount of rotation in radians
+ * @param {boolean} [rad=true] - Set as false to use degrees with r
+ */
+function rotatePoint(c, rp, r, rad=true) {
+    if (!Array.isArray(c) || !Number.isFinite(r)) return void(0); // if not correct types, return void
+
+    if (rad === false) { // Converts to radians if rad === false
+        r = r*(Math.PI/180);
+    }
+
+    let resp = c, // Response variable
+        px, py, // Point to rotate
+        cx = rp[0], // Center of rotation
+        cy = rp[1],
+        rx, ry; // Rotated point
+
+    c.forEach((v, i) => { // For every point in c, rotate
+        px = v[0];
+        py = v[1];
+
+        rx = Math.cos(r) * (px - cx) - Math.sin(r) * (py - cy) + cx;
+        ry = Math.sin(r) * (px - cx) + Math.cos(r) * (py - cy) + cy;
+
+        resp[i][0] = rx;
+        resp[i][1] = ry;
+    })
+
+    return resp;
+}
+
+
+/**
  * Clamps number within range. Numbers out of range are set to the nearest min/max.
- * @param num - Number to clamp
- * @param min - Minimum allowed value
- * @param max - Maximum allowed value
+ * @param {number} num - Number to clamp
+ * @param {number} min - Minimum allowed value
+ * @param {number} max - Maximum allowed value
  * @returns {number}
  */
 Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps number within range
@@ -681,18 +706,18 @@ Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps num
  * @private
  */
 function _down(e) {
-    if (isDown || e.button !== 0) { // left/main click === e.button of 0
+    if (LOREM_IPSUM.isDown || e.button !== 0) { // left/main click === e.button of 0
         /*console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");*/
         _up(e);
         return;
     }
 
-    isDown = true;
-    i = marks.length;
+    LOREM_IPSUM.isDown = true;
+    LOREM_IPSUM.latest.i = LOREM_IPSUM.marks.length;
 
     let pos = getPosition(CSB_APP.canvas, e);
-    current.x1 = pos.x;
-    current.y1 = pos.y;
+    LOREM_IPSUM.latest.x1 = pos.x;
+    LOREM_IPSUM.latest.y1 = pos.y;
 
     TEXT_INFO.mouseDown.innerText = "True";
 
@@ -701,28 +726,28 @@ function _down(e) {
         case "-2": // Edit Tool
             if ((nr = getNearest(CSB_APP.canvas, e, false)) === Infinity) break;
 
-            slctd.i = nr;
-            switch (marks[nr].type) {
+            LOREM_IPSUM.selected.i = nr;
+            switch (LOREM_IPSUM.marks[nr].type) {
                 case 0: // Circle
-                    let dst = distanceCalc(pos.x, pos.y, marks[nr].x, marks[nr].y);
+                    let dst = distanceCalc(pos.x, pos.y, LOREM_IPSUM.marks[nr].x, LOREM_IPSUM.marks[nr].y);
                     console.debug(dst);
-                    if (dst >= (marks[nr].r - SETTINGS.rszCircleThresh) && dst <= (marks[nr].r + SETTINGS.rszCircleThresh)) { // if distance to center is within threshold, do resize mode
+                    if (dst >= (LOREM_IPSUM.marks[nr].r - SETTINGS.rszCircleThresh) && dst <= (LOREM_IPSUM.marks[nr].r + SETTINGS.rszCircleThresh)) { // if distance to center is within threshold, do resize mode
                         console.debug('RESIZE');
-                        slctd.mode = 1; // Resize Mode
+                        LOREM_IPSUM.selected.mode = 1; // Resize Mode
                     } else { // else, do move mode
-                        slctd.mode = 2; // Move mode continues to next case
-                        slctd.offset = [(marks[nr].x - pos.x), (marks[nr].y - pos.y)];
+                        LOREM_IPSUM.selected.mode = 2; // Move mode continues to next case
+                        LOREM_IPSUM.selected.offset = [(LOREM_IPSUM.marks[nr].x - pos.x), (LOREM_IPSUM.marks[nr].y - pos.y)];
                     }
                     break;
                 case 1: // Line
                     /*slctd.offset = [[(marks[nr].x1 - pos.x), (marks[nr].y1 - pos.y)], [(marks[nr].x2 - pos.x), (marks[nr].y2 - pos.y)]];*/
-                    slctd.endPtId = getEndPt(nr, pos);
+                    LOREM_IPSUM.selected.endPtId = getEndPt(nr, pos);
                     break;
                 case 2: // Point
-                    slctd.offset = [(marks[nr].x - pos.x), (marks[nr].y - pos.y)];
+                    LOREM_IPSUM.selected.offset = [(LOREM_IPSUM.marks[nr].x - pos.x), (LOREM_IPSUM.marks[nr].y - pos.y)];
                     break;
             }
-            console.debug(slctd);
+            console.debug(LOREM_IPSUM.selected);
             break;
         case "-1": // Delete Tool
             nr = getNearest(CSB_APP.canvas, e);
@@ -730,14 +755,14 @@ function _down(e) {
             return void(0);
         case "0": // Circle Tool
             // nice looking stuff
-            TEXT_INFO.startCoords.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
+            TEXT_INFO.startCoords.innerText = `[${LOREM_IPSUM.latest.x1.toFixed(0)},${LOREM_IPSUM.latest.y1.toFixed(0)}]`;
             break;
         case "1": // Line Tool
-            TEXT_INFO.startCoords.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
+            TEXT_INFO.startCoords.innerText = `[${LOREM_IPSUM.latest.x1.toFixed(0)},${LOREM_IPSUM.latest.y1.toFixed(0)}]`;
             break;
         case "2": // Point Tool
-            addPoint(current.x1, current.y1, i);
-            i++;
+            addPoint(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.i);
+            LOREM_IPSUM.latest.i++;
             break;
     }
     return void(0);
@@ -750,34 +775,34 @@ function _down(e) {
  * @private
  */
 function _move(e) {
-    isHover = true;
+    LOREM_IPSUM.isHover = true;
 
     let pos = getPosition(CSB_APP.canvas, e);
-    current.x2 = pos.x;
-    current.y2 = pos.y;
+    LOREM_IPSUM.latest.x2 = pos.x;
+    LOREM_IPSUM.latest.y2 = pos.y;
 
     /// Setting Coords
-    TEXT_INFO.coords.innerText = `[${current.x2},${current.y2}]`;
+    TEXT_INFO.coords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
 
     let mk, nr, dst, x, y, x1, y1, x2, y2;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
-            mk = marks[slctd.i];
+            mk = LOREM_IPSUM.marks[LOREM_IPSUM.selected.i];
             nr = getNearest(CSB_APP.canvas, e, false);
             reDraw(nr); // highlight selected
 
-            if (slctd.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
+            if (LOREM_IPSUM.selected.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
             switch (mk.type) {
                 case 0: // Circle
                     dst = distanceCalc(pos.x, pos.y, mk.x, mk.y);
-                    switch (slctd.mode) {
+                    switch (LOREM_IPSUM.selected.mode) {
                         case 1: // Resize
-                            addCirclePR(mk.x, mk.y, dst, slctd.i);
+                            addCirclePR(mk.x, mk.y, dst, LOREM_IPSUM.selected.i);
                             break;
                         case 2: // Move
-                            x = pos.x + slctd.offset[0];
-                            y = pos.y + slctd.offset[1];
-                            addCirclePR(x, y, mk.r, slctd.i);
+                            x = pos.x + LOREM_IPSUM.selected.offset[0];
+                            y = pos.y + LOREM_IPSUM.selected.offset[1];
+                            addCirclePR(x, y, mk.r, LOREM_IPSUM.selected.i);
                             break;
                     }
                     break;
@@ -787,7 +812,7 @@ function _move(e) {
                     x2 = pos.x + slctd.offset[1][0];
                     y2 = pos.y + slctd.offset[1][1];
                     drawLine(x1, y1, x2, y2, slctd.i);*/
-                    switch (slctd.endPtId) {
+                    switch (LOREM_IPSUM.selected.endPtId) {
                         case 1:
                             x1 = pos.x;
                             y1 = pos.y;
@@ -804,37 +829,37 @@ function _move(e) {
                             [x1, y1, x2, y2] = [mk.x1, mk.y1, mk.x2, mk.y2];
                             break;
                     }
-                    drawLineP2P(x1, y1, x2, y2, slctd.i);
+                    drawLineP2P(x1, y1, x2, y2, LOREM_IPSUM.selected.i);
                     break;
                 case 2: // Point
-                    x = pos.x + slctd.offset[0];
-                    y = pos.y + slctd.offset[1];
-                    addPoint(x, y, slctd.i);
+                    x = pos.x + LOREM_IPSUM.selected.offset[0];
+                    y = pos.y + LOREM_IPSUM.selected.offset[1];
+                    addPoint(x, y, LOREM_IPSUM.selected.i);
                     break;
             }
-            reDraw(slctd.i);
+            reDraw(LOREM_IPSUM.selected.i);
             break;
         case "-1": // Delete Tool
             nr = getNearest(CSB_APP.canvas, e);
             reDraw(nr); // highlight selected
             break;
         case "0": // Circle Tool
-            if (isDown) { // if not Tool but is mousedown
+            if (LOREM_IPSUM.isDown) { // if not Tool but is mousedown
                 /// draw ellipse
-                addCircleP2P(current.x1, current.y1, current.x2, current.y2, i);
+                addCircleP2P(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.x2, LOREM_IPSUM.latest.y2, LOREM_IPSUM.latest.i);
                 reDraw();
 
                 // Setting End Coords
-                TEXT_INFO.endCoords.innerText = `[${current.x2},${current.y2}]`;
+                TEXT_INFO.endCoords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
             }
             break;
         case "1": // Line Tool
-            if (isDown) {
+            if (LOREM_IPSUM.isDown) {
                 // Draw Line
-                drawLineP2P(current.x1, current.y1, current.x2, current.y2, i);
+                drawLineP2P(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.x2, LOREM_IPSUM.latest.y2, LOREM_IPSUM.latest.i);
 
                 // Setting End Coords
-                TEXT_INFO.endCoords.innerText = `[${current.x2},${current.y2}]`;
+                TEXT_INFO.endCoords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
             }
             break;
         case "2": // Point Tool
@@ -853,38 +878,38 @@ function _move(e) {
  * @private
  */
 function _up(e) {
-    isHover = false;
+    LOREM_IPSUM.isHover = false;
 
     // real work
-    isDown = false; // clear isDown flag to stop drawing
+    LOREM_IPSUM.isDown = false; // clear isDown flag to stop drawing
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case '-2': // Edit Tool
-            if ((slctd.i === undefined)) return; // if none selected, don't do anything
-            switch (marks[slctd.i].type) {
+            if ((LOREM_IPSUM.selected.i === undefined)) return; // if none selected, don't do anything
+            switch (LOREM_IPSUM.marks[LOREM_IPSUM.selected.i].type) {
                 case 0: // Circle
-                    if (marks[slctd.i].d < SETTINGS.minCraterSize)
-                        delMark(slctd.i);
+                    if (LOREM_IPSUM.marks[LOREM_IPSUM.selected.i].d < SETTINGS.minCraterSize)
+                        delMark(LOREM_IPSUM.selected.i);
                     break;
                 case 1: // Line
-                    if (marks[slctd.i].length < SETTINGS.minLineLength)
-                        delMark(slctd.i);
+                    if (LOREM_IPSUM.marks[LOREM_IPSUM.selected.i].length < SETTINGS.minLineLength)
+                        delMark(LOREM_IPSUM.selected.i);
                     break;
             }
-            slctd = {};
+            LOREM_IPSUM.selected = {};
             break;
         case '0': // Circle Tool
-            if (marks[i] === undefined) return; // if already up, don't do anything
-            if (marks[i].d < SETTINGS.minCraterSize)
-                delMark(i);
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i] === undefined) return; // if already up, don't do anything
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i].d < SETTINGS.minCraterSize)
+                delMark(LOREM_IPSUM.latest.i);
             break;
         case '1': // Line Tool
-            if (marks[i] === undefined) return; // if mark does not exist, don't do anything
-            if (marks[i].length < SETTINGS.minLineLength)
-                delMark(i);
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i] === undefined) return; // if mark does not exist, don't do anything
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i].length < SETTINGS.minLineLength)
+                delMark(LOREM_IPSUM.latest.i);
             break;
         case '2': // Point
-            if (marks[i] === undefined) return; // if mark does not exist, don't do anything
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i] === undefined) return; // if mark does not exist, don't do anything
             break;
     }
 
@@ -895,7 +920,7 @@ function _up(e) {
     TEXT_INFO.endCoords.innerText = `[${cv.x},${cv.y}]`;
     TEXT_INFO.mouseDown.innerText = 'False';
 
-    i = marks.length;
+    LOREM_IPSUM.latest.i = LOREM_IPSUM.marks.length;
     return void(0);
 }
 
@@ -909,7 +934,7 @@ function _up(e) {
  * @private
  */
 function _click(e) {
-    isDown = false;
+    LOREM_IPSUM.isDown = false;
     TEXT_INFO.mouseDown.innerText = 'False';
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
@@ -917,7 +942,7 @@ function _click(e) {
         case "-2":
             let nr = getNearest(CSB_APP.canvas, e);
             reDraw(nr); // highlight selected
-            slctd = {};
+            LOREM_IPSUM.selected = {};
             break;
     }
     return void(0);
@@ -940,7 +965,7 @@ function clearCanvas() {
  * @private
  */
 function _send() {
-    let data = `marks=${JSON.stringify(marks)}`;
+    let data = `marks=${JSON.stringify(LOREM_IPSUM.marks)}`;
     let http = new XMLHttpRequest();
 
     http.addEventListener('readystatechange', (r) => {
@@ -980,7 +1005,7 @@ function _receive() {
  * @private
  */
 function _keyPress(e) {
-    if (!isHover) return;
+    if (!LOREM_IPSUM.isHover) return;
     console.info(e.key);
     switch (e.key) {
         case 'd': // d - Delete
