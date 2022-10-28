@@ -1,54 +1,23 @@
-// --- Settings --- //
-
-
-// Circles/Craters
-const minCraterSize     = 18; // Minimum crater size
-const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle (Delete Tool)
-const rszCircleThresh   = 5;  // Threshold (like radius) of circle resize (Edit Tool)
-const rszArrowLength    = 50; // Length of the arrow that shows when resizing circle
-const rszArrowHead      = 15; // Length of Arrow Head sides
-
-// Points
-const pointRadius       = 10; // Radius of the point
-const delPointMaxDist   = 10; // Maximum distance to delete a point (Delete Tool)
-
-// Lines
-const delLineMaxDist    = 10; // Maximum distance to delete a line (Delete Tool)
-const minLineLength     = 45; // Minimum length of a line
-const endPtMaxDist      = 5;  // Maximum distance to select end-point (Edit Tool)
-
-
-// --- END OF SETTINGS --- //
-
-
-// Used for testing
-//let debug = false; // Toggles Debug Mode
-
-
-// Setup Variables
-
-const current = {};
-
 Object.assign(window, {
     SETTINGS: {
 
         // --- Start of Settings --- //
 
         /// Circles / Craters
-        minCraterSize: 18,
-        delCircleMaxDist: 25,
-        rszCircleThresh: 5,
-        rszArrowLength: 50,
-        rszArrowHead: 15,
+        minCraterSize: 18, // Minimum crater size
+        delCircleMaxDist: 25, // Maximum distance to center to delete a circle (Delete Tool)
+        rszCircleThresh: 5, // Threshold (like radius) of circle resize (Edit Tool)
+        rszArrowLength: 50, // Length of the arrow that shows when resizing circle
+        rszArrowHead: 15, // Length of Arrow Head sides
 
         /// Points
-        pointRadius: 10,
-        delPointMaxDist: 10,
+        pointRadius: 10, // Radius of the point
+        delPointMaxDist: 10, // Maximum distance to delete a point (Delete Tool)
 
         /// Lines
-        delLineMaxDist: 10,
-        minLineLength: 45,
-        endPtMaxDist: 5
+        delLineMaxDist: 10, // Maximum distance to delete a line (Delete Tool)
+        minLineLength: 45, // Minimum length of a line
+        endPtMaxDist: 5 // Maximum distance to select end-point (Edit Tool)
 
         // --- End of Settings --- //
 
@@ -72,28 +41,27 @@ Object.assign(window, {
     },
     CSB_APP: {
         canvas: document.getElementById('canvas'), // The Canvas
-        ctx: this.canvas.getContext("2d"),
-        marks: []
+        ctx: this.canvas.getContext("2d")
+    },
+    LOREM_IPSUM: {
+        marks: [], // List of all marks
+        center: undefined, // See original `let center`
+        radius: undefined,
+        i: 0,
+        selected: {}, // Selected mark
+        current: {}, // Latest information data, used for text bellow canvas
+        isDown: false, // True when mouse is down over canvas
+        isHover: false // True when mouse hovers over canvas
     }
 });
 
-//const canvas = document.getElementById('canvas'); // The Canvas
+// Setup Variables
 
-const ctx = CSB_APP.canvas.getContext("2d"); // Canvas context
-
-// Debug Information bellow canvas
-//const crds = document.getElementById('coords');
-//const strc = document.getElementById('start-coords');
-//const cntr = document.getElementById('center-coords');
-//const endc = document.getElementById('end-coords');
-//const rdus = document.getElementById('radius');
-//const lnth = document.getElementById('length');
-//const angl = document.getElementById('angle');
-//const msdn = document.getElementById('mouse-down');
+const current = {};
 
 const marks = []; // Array of all the marks
 
-let center,
+let center, // FIXME : center, radius, & i seem like a duplicate use of current
     radius,
     i = 0,
     slctd = {},
