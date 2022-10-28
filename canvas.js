@@ -1,16 +1,18 @@
-// Settings
+// --- Settings --- //
 
 
-/* Circles/Craters */
+// Circles/Craters
 const minCraterSize     = 18; // Minimum crater size
 const delCircleMaxDist  = 25; // Maximum distance to center to delete a circle (Delete Tool)
 const rszCircleThresh   = 5;  // Threshold (like radius) of circle resize (Edit Tool)
+const rszArrowLength    = 50; // Length of the arrow that shows when resizing circle
+const rszArrowHead      = 15; // Length of Arrow Head sides
 
-/* Points */
+// Points
 const pointRadius       = 10; // Radius of the point
 const delPointMaxDist   = 10; // Maximum distance to delete a point (Delete Tool)
 
-/* Lines */
+// Lines
 const delLineMaxDist    = 10; // Maximum distance to delete a line (Delete Tool)
 const minLineLength     = 45; // Minimum length of a line
 const endPtMaxDist      = 5;  // Maximum distance to select end-point (Edit Tool)
@@ -20,29 +22,74 @@ const endPtMaxDist      = 5;  // Maximum distance to select end-point (Edit Tool
 
 
 // Used for testing
-let debug = false; // Toggles Debug Mode
-
-const _tempTestOne = [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}];
-const _tempTestTwo = [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
+//let debug = false; // Toggles Debug Mode
 
 
 // Setup Variables
 
 const current = {};
 
-const canvas = document.getElementById('canvas'); // The Canvas
+Object.assign(window, {
+    SETTINGS: {
 
-const ctx = canvas.getContext("2d"); // Canvas context
+        // --- Start of Settings --- //
+
+        /// Circles / Craters
+        minCraterSize: 18,
+        delCircleMaxDist: 25,
+        rszCircleThresh: 5,
+        rszArrowLength: 50,
+        rszArrowHead: 15,
+
+        /// Points
+        pointRadius: 10,
+        delPointMaxDist: 10,
+
+        /// Lines
+        delLineMaxDist: 10,
+        minLineLength: 45,
+        endPtMaxDist: 5
+
+        // --- End of Settings --- //
+
+    },
+    TEXT_INFO: { // Debug Information bellow canvas
+        coords: document.getElementById('coords'),
+        startCoords: document.getElementById('start-coords'),
+        centerCoords: document.getElementById('center-coords'),
+        endCoords: document.getElementById('end-coords'),
+        radius: document.getElementById('radius'),
+        length: document.getElementById('length'),
+        angle: document.getElementById('angle'),
+        mouseDown: document.getElementById('mouse-down')
+    },
+    DEBUG: { // Used for testing
+        enabled: false, // Toggles Debug Mode
+        _tests: {
+            _tempTestOne: [{"timestamp":1665670727055,"type":0,"x":113,"y":270.5,"d":46.010868281309364,"r":23.005434140654682},{"timestamp":1665670729802,"type":0,"x":263.5,"y":13,"d":143.68368035375485,"r":71.84184017687743},{"timestamp":1665670733986,"type":0,"x":245,"y":181,"d":38.2099463490856,"r":19.1049731745428},{"timestamp":1665670738867,"type":0,"x":384.5,"y":40.5,"d":63.89053137985315,"r":31.945265689926575}],
+            _tempTestTwo: [{"timestamp":1665688602591,"type":0,"x":263,"y":17,"d":136.23509092741122,"r":68.11754546370561},{"timestamp":1665688607196,"type":0,"x":386,"y":41,"d":62.12889826803627,"r":31.064449134018133},{"timestamp":1665688611451,"type":0,"x":110.5,"y":270,"d":45.044422518220834,"r":22.522211259110417},{"timestamp":1665688615594,"type":0,"x":274,"y":348,"d":36.76955262170047,"r":18.384776310850235},{"timestamp":1665688617920,"type":0,"x":363.5,"y":321.5,"d":26.870057685088806,"r":13.435028842544403},{"timestamp":1665688620896,"type":0,"x":375,"y":293.5,"d":26.92582403567252,"r":13.46291201783626},{"timestamp":1665688625697,"type":0,"x":32,"y":374,"d":48.33218389437829,"r":24.166091947189145},{"timestamp":1665688631893,"type":0,"x":241.5,"y":182.5,"d":38.28837943815329,"r":19.144189719076646}]
+        }
+    },
+    CSB_APP: {
+        canvas: document.getElementById('canvas'), // The Canvas
+        ctx: this.canvas.getContext("2d"),
+        marks: []
+    }
+});
+
+//const canvas = document.getElementById('canvas'); // The Canvas
+
+const ctx = CSB_APP.canvas.getContext("2d"); // Canvas context
 
 // Debug Information bellow canvas
-const crds = document.getElementById('coords');
-const strc = document.getElementById('start-coords');
-const cntr = document.getElementById('center-coords');
-const endc = document.getElementById('end-coords');
-const rdus = document.getElementById('radius');
-const lnth = document.getElementById('length');
-const angl = document.getElementById('angle');
-const msdn = document.getElementById('mouse-down');
+//const crds = document.getElementById('coords');
+//const strc = document.getElementById('start-coords');
+//const cntr = document.getElementById('center-coords');
+//const endc = document.getElementById('end-coords');
+//const rdus = document.getElementById('radius');
+//const lnth = document.getElementById('length');
+//const angl = document.getElementById('angle');
+//const msdn = document.getElementById('mouse-down');
 
 const marks = []; // Array of all the marks
 
@@ -56,8 +103,8 @@ let center,
 
 // Setup Canvas
 
-canvas.width = 450; // Width of the canvas
-canvas.height = 450; // Height of the canvas
+CSB_APP.canvas.width = 450; // Width of the canvas
+CSB_APP.canvas.height = 450; // Height of the canvas
 
 
 // Setup Classes
@@ -200,6 +247,7 @@ function getPosition(canvas, event, toFixed=false) {
             y = mp.y.toFixed(toFixed);
             break;
     }
+
     return {
         x: x,
         y: y
@@ -238,10 +286,10 @@ function addCircleP2P(x1, y1, x2, y2, i) {
 
     radius = distanceCalc(center.x, center.y, x1, y1);
 
-    cntr.innerText = `[${center.x},${center.y}]`;
+    TEXT_INFO.centerCoords.innerText = `[${center.x},${center.y}]`;
     console.debug("p1: " + [x1,y1], "\npc: " + [center.x,center.y], "\np2: " + [x2,y2], "\nradius: " + radius);
 
-    rdus.innerText = radius.toFixed(3);
+    TEXT_INFO.radius.innerText = radius.toFixed(3);
 
     addCirclePR(center.x, center.y, radius, i);
 }
@@ -262,6 +310,30 @@ function addCirclePR(x, y, radius, index) {
     else
         marks.push(crcl);
 }
+
+
+// /**
+//  * Draw resize arrow using the mouse position and the circle's index
+//  * @param {HTMLCanvasElement} canvas - Canvas element
+//  * @param {MouseEvent} e - Mouse event
+//  * @param {number} index - Index of the nearest mark
+//  */
+// function drawResizeArrowMI(canvas, e, index) {
+//
+// }
+
+
+// /**
+//  * Draw resize arrow using center point & rotation of the arrow
+//  * @param {HTMLCanvasElement} canvas - Canvas element
+//  * @param {number} x - Center-X
+//  * @param {number} y - Center-Y
+//  * @param {number} r - Rotation
+//  */
+// function drawResizeArrowCR(canvas, x, y, r) {
+//     let arw = new Path2D();
+//
+// }
 
 
 /**
@@ -298,10 +370,11 @@ function drawLineP2P(x1, y1, x2, y2, index) {
         marks.push(ln);
     reDraw();
 
-    lnth.innerText = ln.length.toFixed(3);
-    angl.innerText = `${ln.angle.toFixed(3)}\u00b0`;
-    cntr.innerText = `[${ln.center.x},${ln.center.y}]`;
+    TEXT_INFO.length.innerText = ln.length.toFixed(3);
+    TEXT_INFO.angle.innerText = `${ln.angle.toFixed(3)}\u00b0`;
+    TEXT_INFO.centerCoords.innerText = `[${ln.center.x},${ln.center.y}]`;
 
+    return void(0);
 }
 
 
@@ -314,7 +387,7 @@ function drawLineP2P(x1, y1, x2, y2, index) {
  */
 function _Point2D(x, y) {
     let pt = new Path2D();
-    pt.arc(x, y, pointRadius, 0, Math.PI * 2);
+    pt.arc(x, y, SETTINGS.pointRadius, 0, Math.PI * 2);
     return pt;
 }
 
@@ -333,6 +406,7 @@ function addPoint(x, y, index) {
     else
         marks.push(pt);
     reDraw();
+    return void(0);
 }
 
 
@@ -343,7 +417,7 @@ function addPoint(x, y, index) {
  * @note ctx.strokeStyle = "#f8b31f";<br>ctx.fillStyle = "#f8b31f33";
  */
 function reDraw(i) {
-    let tmp, v;
+    let tmp, v, ctx = CSB_APP.ctx;
     clearCanvas();
 
     for(let j = 0; j < marks.length; j++) {
@@ -357,7 +431,7 @@ function reDraw(i) {
             case 0: // Circle
                 tmp = _Circle2D(v.x, v.y, (v.r)); // Circle with center [x,y] & radius = diameter/2
                 ctx.lineWidth = 2;
-                if ((v.d) < minCraterSize) { // if too small
+                if ((v.d) < SETTINGS.minCraterSize) { // if too small
                     ctx.strokeStyle = "#f00";
                     ctx.fillStyle = "#f003";
                 } else if (j === i) { // if Selected
@@ -375,7 +449,7 @@ function reDraw(i) {
                 tmp = _Line2D(v.x1, v.y1, v.x2, v.y2);
                 ctx.beginPath();
                 ctx.lineWidth = 5;
-                if (v.length < minLineLength) { // if too short
+                if (v.length < SETTINGS.minLineLength) { // if too short
                     ctx.strokeStyle = "#f00a";
                 } else if (j === i) { // if Selected
                     ctx.strokeStyle = "#fffa";
@@ -397,6 +471,7 @@ function reDraw(i) {
                 ctx.fill(tmp, "nonzero");
         }
     }
+    return void(0);
 }
 
 
@@ -407,6 +482,7 @@ function reDraw(i) {
 function delMark(i) {
     marks.splice(i, 1);
     reDraw();
+    return void(0);
 }
 
 
@@ -417,6 +493,7 @@ function delMark(i) {
  */
 function delLastMark() {
     delMark(marks.length - 1);
+    return void(0);
 }
 
 
@@ -424,7 +501,7 @@ function delLastMark() {
  * Calculates the distance of all marks to the mouse cursor then returns the index of the nearest mark.
  * @param {HTMLCanvasElement} canvas - Target Canvas
  * @param {MouseEvent} e - Mouse Event
- * @param {boolean} [limit] - If false, circle max distance is `radius+rszCircleThresh`
+ * @param {boolean} [limit] - If false, circle max distance is `radius+SETTINGS.rszCircleThresh`
  * @returns {number} - Index of the nearest mark
  */
 function getNearest(canvas, e, limit=true) {
@@ -445,7 +522,7 @@ function getNearest(canvas, e, limit=true) {
                 y = v.y;
                 tempDist = distanceCalc(x, y, x0, y0);
 
-                if (bestDist >= tempDist && (v.r + (limit ? 0 : rszCircleThresh)) >= tempDist && tempDist <= (limit ? delCircleMaxDist : v.r + rszCircleThresh)) { // closer or equal to last best & no further than radius
+                if (bestDist >= tempDist && (v.r + (limit ? 0 : SETTINGS.rszCircleThresh)) >= tempDist && tempDist <= (limit ? SETTINGS.delCircleMaxDist : v.r + SETTINGS.rszCircleThresh)) { // closer or equal to last best & no further than radius
                     bestDist = tempDist;
                     best = i;
                 }
@@ -514,7 +591,7 @@ function getNearest(canvas, e, limit=true) {
                             pf = rotateAxis([[rx0,ry1]], ang, false)[0];
                         }
 
-                        if (debug === true && i === 0) { // debug for visualizing the first line
+                        if (DEBUG.enabled === true && i === 0) { // debug for visualizing the first line
                             drawLineP2P(rx1,ry1,rx2,ry2, 1);
                             addPoint(pf[0], pf[1], 2);
                             addPoint(x0, y0, 3);
@@ -523,7 +600,7 @@ function getNearest(canvas, e, limit=true) {
                         tempDist = distanceCalc(x0, y0, pf[0], pf[1]);
                         break;
                 }
-                if (bestDist >= tempDist && delLineMaxDist >= tempDist) { // closer than last best & no further than radius
+                if (bestDist >= tempDist && SETTINGS.delLineMaxDist >= tempDist) { // closer than last best & no further than radius
                     bestDist = tempDist;
                     best = i;
                 }
@@ -533,7 +610,7 @@ function getNearest(canvas, e, limit=true) {
                 y = v.y;
                 tempDist = distanceCalc(v.x, v.y, msPs.x, msPs.y);
 
-                if (bestDist >= tempDist && delPointMaxDist >= tempDist) { // closer than last best & no further than radius
+                if (bestDist >= tempDist && SETTINGS.delPointMaxDist >= tempDist) { // closer than last best & no further than radius
                     bestDist = tempDist;
                     best = i;
                 }
@@ -545,69 +622,38 @@ function getNearest(canvas, e, limit=true) {
 }
 
 
-/**
- * Returns nearest endpoint
- * @deprecated No need to loop through all marks to find nearest end-pts
- * @use {@link getEndPt}
- * @param {HTMLCanvasElement} canvas
- * @param {MouseEvent} e
- * @returns {{bestDist: number, best: number}}
- */
-function findNearestEndPoints (canvas, e) {
-    marks.forEach((v) => {
-        if (v.type === 1) { // if Line
-            let msPs = getPosition(canvas, e),
-                best = Infinity,
-                bestDist = Infinity,
-                x1 = v.x1, // End-Point 1
-                y1 = v.y1,
-                x2 = v.x2, // End-Point 2
-                y2 = v.y2,
-                d1 = distanceCalc(msPs.x, msPs.y, x1, y1),
-                d2 = distanceCalc(msPs.x, msPs.y, x2, y2),
-                tempDist = Math.min(d1, d2),
-                pn = (d1 === tempDist) ? 1 : 2;
-
-            if (bestDist >= tempDist && delPointMaxDist >= tempDist) { // closer than last best & no further than radius
-                bestDist = tempDist;
-                best = pn;
-            }
-        }
-    })
-
-    return {best: best, bestDist: bestDist};
-}
 
 
-/**
- * Returns line endpoint nearest to the mouse
- * @param {number} index - Index number for `marks`
- * @param {getPosition} msPs - Mouse positon
- * @returns {number} - Endpoint [P1=>1, P2=>2]
- */
-function getEndPt (index, msPs) {
-    let v = marks[index];
-    let pt = Infinity, // Represents which end-point is closest; 1 or 2
-        d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
-        d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
-        dist = Math.min(d1, d2), // Gets nearest distance
-        pn;
 
-    switch (dist) {
-        case d1:
-            pn = 1;
-            break;
-        case d2:
-            pn = 2;
-            break;
-    }
-
-    if (endPtMaxDist >= dist) { // if close enough to end point
-        pt = pn;
-    }
-    console.log(pt);
-    return pt;
-}
+// /**
+//  * Returns line endpoint nearest to the mouse
+//  * @param {number} index - Index number for `marks`
+//  * @param {{x: number, y: number}} msPs - Mouse position ({@link getPosition})
+//  * @returns {number} - Endpoint [P1=>1, P2=>2]
+//  */
+// function getEndPt (index, msPs) {
+//     let v = marks[index];
+//     let pt = Infinity, // Represents which end-point is closest; 1 or 2
+//         d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
+//         d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
+//         dist = Math.min(d1, d2), // Gets nearest distance
+//         pn;
+//
+//     switch (dist) {
+//         case d1:
+//             pn = 1;
+//             break;
+//         case d2:
+//             pn = 2;
+//             break;
+//     }
+//
+//     if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
+//         pt = pn;
+//     }
+//     console.log(pt);
+//     return pt;
+// }
 
 
 /**
@@ -676,23 +722,23 @@ function _down(e) {
     isDown = true;
     i = marks.length;
 
-    let pos = getPosition(canvas, e);
+    let pos = getPosition(CSB_APP.canvas, e);
     current.x1 = pos.x;
     current.y1 = pos.y;
 
-    msdn.innerText = "True";
+    TEXT_INFO.mouseDown.innerText = "True";
 
     let nr;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
-            if ((nr = getNearest(canvas, e, false)) === Infinity) break;
+            if ((nr = getNearest(CSB_APP.canvas, e, false)) === Infinity) break;
 
             slctd.i = nr;
             switch (marks[nr].type) {
                 case 0: // Circle
                     let dst = distanceCalc(pos.x, pos.y, marks[nr].x, marks[nr].y);
                     console.debug(dst);
-                    if (dst >= (marks[nr].r - rszCircleThresh) && dst <= (marks[nr].r + rszCircleThresh)) { // if distance to center is within threshold, do resize mode
+                    if (dst >= (marks[nr].r - SETTINGS.rszCircleThresh) && dst <= (marks[nr].r + SETTINGS.rszCircleThresh)) { // if distance to center is within threshold, do resize mode
                         console.debug('RESIZE');
                         slctd.mode = 1; // Resize Mode
                     } else { // else, do move mode
@@ -711,21 +757,22 @@ function _down(e) {
             console.debug(slctd);
             break;
         case "-1": // Delete Tool
-            nr = getNearest(canvas, e);
+            nr = getNearest(CSB_APP.canvas, e);
             delMark(nr);
             return void(0);
         case "0": // Circle Tool
             // nice looking stuff
-            strc.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
+            TEXT_INFO.startCoords.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
             break;
         case "1": // Line Tool
-            strc.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
+            TEXT_INFO.startCoords.innerText = `[${current.x1.toFixed(0)},${current.y1.toFixed(0)}]`;
             break;
         case "2": // Point Tool
             addPoint(current.x1, current.y1, i);
             i++;
             break;
     }
+    return void(0);
 }
 
 
@@ -737,18 +784,18 @@ function _down(e) {
 function _move(e) {
     isHover = true;
 
-    let pos = getPosition(canvas, e);
+    let pos = getPosition(CSB_APP.canvas, e);
     current.x2 = pos.x;
     current.y2 = pos.y;
 
     /// Setting Coords
-    crds.innerText = `[${current.x2},${current.y2}]`;
+    TEXT_INFO.coords.innerText = `[${current.x2},${current.y2}]`;
 
     let mk, nr, dst, x, y, x1, y1, x2, y2;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
             mk = marks[slctd.i];
-            nr = getNearest(canvas, e, false);
+            nr = getNearest(CSB_APP.canvas, e, false);
             reDraw(nr); // highlight selected
 
             if (slctd.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
@@ -800,7 +847,7 @@ function _move(e) {
             reDraw(slctd.i);
             break;
         case "-1": // Delete Tool
-            nr = getNearest(canvas, e);
+            nr = getNearest(CSB_APP.canvas, e);
             reDraw(nr); // highlight selected
             break;
         case "0": // Circle Tool
@@ -810,7 +857,7 @@ function _move(e) {
                 reDraw();
 
                 // Setting End Coords
-                endc.innerText = `[${current.x2},${current.y2}]`;
+                TEXT_INFO.endCoords.innerText = `[${current.x2},${current.y2}]`;
             }
             break;
         case "1": // Line Tool
@@ -819,7 +866,7 @@ function _move(e) {
                 drawLineP2P(current.x1, current.y1, current.x2, current.y2, i);
 
                 // Setting End Coords
-                endc.innerText = `[${current.x2},${current.y2}]`;
+                TEXT_INFO.endCoords.innerText = `[${current.x2},${current.y2}]`;
             }
             break;
         case "2": // Point Tool
@@ -828,6 +875,7 @@ function _move(e) {
             console.debug("Just another edge case, nothing to worry about!\nHere is a cookie 🍪");
             break;
     }
+    return void(0);
 }
 
 
@@ -844,42 +892,43 @@ function _up(e) {
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case '-2': // Edit Tool
-            if ((slctd.i === undefined)) return; // if already up, don't do anything
+            if ((slctd.i === undefined)) return; // if none selected, don't do anything
             switch (marks[slctd.i].type) {
                 case 0: // Circle
-                    if (marks[slctd.i].d < minCraterSize)
+                    if (marks[slctd.i].d < SETTINGS.minCraterSize)
                         delMark(slctd.i);
                     break;
                 case 1: // Line
-                    if (marks[slctd.i].length < minLineLength)
+                    if (marks[slctd.i].length < SETTINGS.minLineLength)
                         delMark(slctd.i);
                     break;
             }
+            slctd = {};
             break;
         case '0': // Circle Tool
             if (marks[i] === undefined) return; // if already up, don't do anything
-            if (marks[i].d < minCraterSize)
+            if (marks[i].d < SETTINGS.minCraterSize)
                 delMark(i);
             break;
         case '1': // Line Tool
-            if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
-            if (marks[i].length < minLineLength)
+            if (marks[i] === undefined) return; // if mark does not exist, don't do anything
+            if (marks[i].length < SETTINGS.minLineLength)
                 delMark(i);
             break;
         case '2': // Point
-            if (!isDown || marks[i] === undefined) return; // if already up, don't do anything
+            if (marks[i] === undefined) return; // if mark does not exist, don't do anything
             break;
     }
 
     reDraw();
 
     // nice looking stuff
-    let cv = getPosition(canvas, e);
-    endc.innerText = `[${cv.x},${cv.y}]`;
-    msdn.innerText = 'False';
+    let cv = getPosition(CSB_APP.canvas, e);
+    TEXT_INFO.endCoords.innerText = `[${cv.x},${cv.y}]`;
+    TEXT_INFO.mouseDown.innerText = 'False';
 
     i = marks.length;
-    void(0);
+    return void(0);
 }
 
 
@@ -893,16 +942,17 @@ function _up(e) {
  */
 function _click(e) {
     isDown = false;
-    msdn.innerText = 'False';
+    TEXT_INFO.mouseDown.innerText = 'False';
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-1": // Delete Tool
         case "-2":
-            let nr = getNearest(canvas, e);
+            let nr = getNearest(CSB_APP.canvas, e);
             reDraw(nr); // highlight selected
             slctd = {};
             break;
     }
+    return void(0);
 }
 
 
@@ -910,7 +960,7 @@ function _click(e) {
  * Clears the canvas
  */
 function clearCanvas() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    CSB_APP.ctx.clearRect(0, 0, CSB_APP.canvas.width, CSB_APP.canvas.height);
     return void(0);
 }
 
@@ -994,10 +1044,6 @@ function _keyPress(e) {
 }
 
 
-/// draw ellipse from start point
-
-
-
 // Event Listeners
 
 /**
@@ -1005,12 +1051,9 @@ function _keyPress(e) {
  */
 addEventListener('click', _click);
 
-//addEventListener('click', _up);
+CSB_APP.canvas.addEventListener('mousedown', _down);
 
-canvas.addEventListener('mousedown', _down);
-
-canvas.addEventListener('mousemove', _move);
-
+CSB_APP.canvas.addEventListener('mousemove', _move);
 
 addEventListener('mouseup', _up);
 
