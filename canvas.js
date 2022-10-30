@@ -43,7 +43,7 @@ Object.assign(window, {
         canvas: document.getElementById('canvas'), // The Canvas
         ctx: this.canvas.getContext("2d")
     },
-    LOREM_IPSUM: {
+    LOREM_IPSUM: { // TODO : Choose a better name
         marks: [], // List of all marks
         selected: {}, // Selected mark
         latest: {
@@ -51,8 +51,6 @@ Object.assign(window, {
             center: undefined,
             radius: undefined
         }, // Latest information data, used for text bellow canvas
-        center: undefined, // See original `let center`
-        radius: undefined,
         isDown: false, // True when mouse is down over canvas
         isHover: false // True when mouse hovers over canvas
     }
@@ -66,6 +64,7 @@ CSB_APP.canvas.height = 450; // Height of the canvas
 
 
 // Setup Classes
+
 
 /**
  * Makes all circles standardized. Used in the marks array.
@@ -90,6 +89,7 @@ class Circle {
         this.r = radius;
     }
 }
+
 
 /**
  * Standardized Lines, what more could you want! :)
@@ -126,6 +126,7 @@ class Line {
         this.length = distanceCalc(x1, y1, x2, y2);
     }
 }
+
 
 /**
  * Makes all points standardized.
@@ -181,7 +182,7 @@ class Point {
  * @summary Get position of mouse relative to Canvas
  * @param {HTMLCanvasElement} canvas - Target canvas
  * @param {MouseEvent} event - Mouse event
- * @param {boolean} [toFixed=false] - `Number.prototype.toFixed` argument
+ * @param {number|boolean} [toFixed=false] - `Number.prototype.toFixed` argument
  * @returns {{x: (number|string), y: (number|string)}}
  */
 function getPosition(canvas, event, toFixed=false) {
@@ -196,13 +197,13 @@ function getPosition(canvas, event, toFixed=false) {
 
     let x, y;
     switch(toFixed) {
-        case true:
-            x = mp.x.toFixed(toFixed);
-            y = mp.y.toFixed(toFixed);
-            break;
-        default:
+        case false:
             x = mp.x;
             y = mp.y;
+            break;
+        default:
+            x = mp.x.toFixed(toFixed);
+            y = mp.y.toFixed(toFixed);
             break;
     }
 
@@ -245,7 +246,7 @@ function addCircleP2P(x1, y1, x2, y2, i) {
     LOREM_IPSUM.latest.radius = distanceCalc(LOREM_IPSUM.latest.center.x, LOREM_IPSUM.latest.center.y, x1, y1);
 
     TEXT_INFO.centerCoords.innerText = `[${LOREM_IPSUM.latest.center.x},${LOREM_IPSUM.latest.center.y}]`;
-    console.debug("p1: " + [x1,y1], "\npc: " + [LOREM_IPSUM.latest.center.x,LOREM_IPSUM.latest.center.y], "\np2: " + [x2,y2], "\nradius: " + LOREM_IPSUM.latest.radius);
+    if (DEBUG.enabled) console.debug("p1: " + [x1,y1], "\npc: " + [LOREM_IPSUM.latest.center.x,LOREM_IPSUM.latest.center.y], "\np2: " + [x2,y2], "\nradius: " + LOREM_IPSUM.latest.radius);
 
     TEXT_INFO.radius.innerText = LOREM_IPSUM.latest.radius.toFixed(3);
 
@@ -263,7 +264,7 @@ function addCircleP2P(x1, y1, x2, y2, i) {
 function addCirclePR(x, y, radius, index) {
     let crcl = new Circle(x, y, radius);
 
-    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+    if (typeof index === "number" && 0 <= index && index <= LOREM_IPSUM.marks.length) // if index is specified
         LOREM_IPSUM.marks[index] = crcl;
     else
         LOREM_IPSUM.marks.push(crcl);
@@ -320,13 +321,12 @@ function _Line2D(x1, y1, x2, y2) {
  * @param index
  */
 function drawLineP2P(x1, y1, x2, y2, index) {
-    console.log(x1, y1, x2, y2, index);
+    if (DEBUG.enabled) console.log(x1, y1, x2, y2, index);
     let ln = new Line(x1, y1, x2, y2);
-    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+    if (typeof index === "number" && 0 <= index && index <= LOREM_IPSUM.marks.length) // if index is specified
         LOREM_IPSUM.marks[index] = ln;
     else
         LOREM_IPSUM.marks.push(ln);
-    reDraw();
 
     TEXT_INFO.length.innerText = ln.length.toFixed(3);
     TEXT_INFO.angle.innerText = `${ln.angle.toFixed(3)}\u00b0`;
@@ -363,7 +363,6 @@ function addPoint(x, y, index) {
         LOREM_IPSUM.marks[index] = pt;
     else
         LOREM_IPSUM.marks.push(pt);
-    reDraw();
     return void(0);
 }
 
@@ -372,9 +371,10 @@ function addPoint(x, y, index) {
  * Clears canvas then loops through all marks to re-draw
  *
  * @param {number} [i] - index to highlight
+ * @param {number} [mode=0] - Stroke mode [0: Default, 1: Stroke Only, 2: Fill Only]
  * @note ctx.strokeStyle = "#f8b31f";<br>ctx.fillStyle = "#f8b31f33";
  */
-function reDraw(i) {
+function reDraw(i, mode=0) { if (DEBUG.enabled) console.debug(i, mode);
     let tmp, v, ctx = CSB_APP.ctx;
     clearCanvas();
 
@@ -393,14 +393,26 @@ function reDraw(i) {
                     ctx.strokeStyle = "#f00";
                     ctx.fillStyle = "#f003";
                 } else if (j === i) { // if Selected
-                    ctx.strokeStyle = "#fff";
-                    ctx.fillStyle = "#fff3";
+                    switch (mode) {
+                        case 0: // Highlight All
+                            ctx.strokeStyle = "#fff";
+                            ctx.fillStyle = "#fff3";
+                            break;
+                        case 1: // Highlight Stroke
+                            ctx.strokeStyle = "#fff";
+                            ctx.fillStyle = "#f8b31f33";
+                            break;
+                        case 2: // Highlight Fill
+                            ctx.strokeStyle = "#f8b31f";
+                            ctx.fillStyle = "#fff3";
+                            break;
+                    }
                 } else {
                     ctx.strokeStyle = "#f8b31f";
                     ctx.fillStyle = "#f8b31f33"; // #f8b31f33
                 }
 
-                ctx.stroke(tmp, "nonzero");
+                ctx.stroke(tmp);
                 ctx.fill(tmp, "nonzero");
                 break;
             case 1: // Line
@@ -415,7 +427,7 @@ function reDraw(i) {
                     ctx.strokeStyle = "#601a4aaa"; // #5a368daa
                 }
                 ctx.closePath();
-                ctx.stroke(tmp, "nonzero");
+                ctx.stroke(tmp);
                 break;
             case 2: // Point
                 tmp = _Point2D(v.x, v.y);
@@ -473,7 +485,7 @@ function getNearest(canvas, e, limit=true) {
 
         x, y;
 
-    LOREM_IPSUM.marks.forEach((v, i) => { console.debug(v, i);
+    LOREM_IPSUM.marks.forEach((v, i) => {
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
             case 0: // Circle
                 x = v.x; // Center Point
@@ -580,9 +592,6 @@ function getNearest(canvas, e, limit=true) {
 }
 
 
-
-
-
 /**
  * Returns line endpoint nearest to the mouse
  * @param {number} index - Index number for `marks`
@@ -609,7 +618,7 @@ function getEndPt (index, msPs) {
     if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
         pt = pn;
     }
-    console.log(pt);
+
     return pt;
 }
 
@@ -691,6 +700,15 @@ function rotatePoint(c, rp, r, rad=true) {
 
 
 /**
+ * Clears the canvas
+ */
+function clearCanvas() {
+    CSB_APP.ctx.clearRect(0, 0, CSB_APP.canvas.width, CSB_APP.canvas.height);
+    return void(0);
+}
+
+
+/**
  * Clamps number within range. Numbers out of range are set to the nearest min/max.
  * @param {number} num - Number to clamp
  * @param {number} min - Minimum allowed value
@@ -707,7 +725,6 @@ Math.clamp = (num, min, max) => Math.min(Math.max(num, min), max); // Clamps num
  */
 function _down(e) {
     if (LOREM_IPSUM.isDown || e.button !== 0) { // left/main click === e.button of 0
-        /*console.debug("Congratulations! You found an edge case!\nWe know about this, though it is not an issue :)");*/
         _up(e);
         return;
     }
@@ -730,9 +747,8 @@ function _down(e) {
             switch (LOREM_IPSUM.marks[nr].type) {
                 case 0: // Circle
                     let dst = distanceCalc(pos.x, pos.y, LOREM_IPSUM.marks[nr].x, LOREM_IPSUM.marks[nr].y);
-                    console.debug(dst);
+
                     if (dst >= (LOREM_IPSUM.marks[nr].r - SETTINGS.rszCircleThresh) && dst <= (LOREM_IPSUM.marks[nr].r + SETTINGS.rszCircleThresh)) { // if distance to center is within threshold, do resize mode
-                        console.debug('RESIZE');
                         LOREM_IPSUM.selected.mode = 1; // Resize Mode
                     } else { // else, do move mode
                         LOREM_IPSUM.selected.mode = 2; // Move mode continues to next case
@@ -747,7 +763,6 @@ function _down(e) {
                     LOREM_IPSUM.selected.offset = [(LOREM_IPSUM.marks[nr].x - pos.x), (LOREM_IPSUM.marks[nr].y - pos.y)];
                     break;
             }
-            console.debug(LOREM_IPSUM.selected);
             break;
         case "-1": // Delete Tool
             nr = getNearest(CSB_APP.canvas, e);
@@ -762,6 +777,7 @@ function _down(e) {
             break;
         case "2": // Point Tool
             addPoint(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.i);
+            reDraw();
             LOREM_IPSUM.latest.i++;
             break;
     }
@@ -784,7 +800,7 @@ function _move(e) {
     /// Setting Coords
     TEXT_INFO.coords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
 
-    let mk, nr, dst, x, y, x1, y1, x2, y2;
+    let mk, nr, dst, x, y, x1, y1, x2, y2, skip=false;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
             mk = LOREM_IPSUM.marks[LOREM_IPSUM.selected.i];
@@ -792,26 +808,40 @@ function _move(e) {
             reDraw(nr); // highlight selected
 
             if (LOREM_IPSUM.selected.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
+
             switch (mk.type) {
                 case 0: // Circle
-                    dst = distanceCalc(pos.x, pos.y, mk.x, mk.y);
                     switch (LOREM_IPSUM.selected.mode) {
                         case 1: // Resize
-                            addCirclePR(mk.x, mk.y, dst, LOREM_IPSUM.selected.i);
+                            switch (skip) {
+                                case false:
+                                    dst = distanceCalc(pos.x, pos.y, mk.x, mk.y);
+                                    addCirclePR(mk.x, mk.y, dst, LOREM_IPSUM.selected.i);
+                                    reDraw(nr, 1); // highlight selected
+                                    break;
+                                case true:
+                                    reDraw(nr, 1); // highlight selected
+                                    return;
+                            }
                             break;
                         case 2: // Move
-                            x = pos.x + LOREM_IPSUM.selected.offset[0];
-                            y = pos.y + LOREM_IPSUM.selected.offset[1];
-                            addCirclePR(x, y, mk.r, LOREM_IPSUM.selected.i);
+                            switch (skip) {
+                                case false:
+                                    x = pos.x + LOREM_IPSUM.selected.offset[0];
+                                    y = pos.y + LOREM_IPSUM.selected.offset[1];
+                                    addCirclePR(x, y, mk.r, LOREM_IPSUM.selected.i);
+                                    reDraw(nr, 2); // highlight selected
+                                    break;
+                                case true:
+                                    reDraw(nr, 2); // highlight selected
+                                    return;
+                            }
                             break;
                     }
                     break;
                 case 1: // Line
-                    /*x1 = pos.x + slctd.offset[0][0];
-                    y1 = pos.y + slctd.offset[0][1];
-                    x2 = pos.x + slctd.offset[1][0];
-                    y2 = pos.y + slctd.offset[1][1];
-                    drawLine(x1, y1, x2, y2, slctd.i);*/
+                    if (skip) return;
+
                     switch (LOREM_IPSUM.selected.endPtId) {
                         case 1:
                             x1 = pos.x;
@@ -830,14 +860,17 @@ function _move(e) {
                             break;
                     }
                     drawLineP2P(x1, y1, x2, y2, LOREM_IPSUM.selected.i);
+                    reDraw(nr); // highlight selected
                     break;
                 case 2: // Point
+                    if (skip) return;
                     x = pos.x + LOREM_IPSUM.selected.offset[0];
                     y = pos.y + LOREM_IPSUM.selected.offset[1];
                     addPoint(x, y, LOREM_IPSUM.selected.i);
+                    reDraw(nr); // highlight selected
                     break;
             }
-            reDraw(LOREM_IPSUM.selected.i);
+            //reDraw(LOREM_IPSUM.selected.i);
             break;
         case "-1": // Delete Tool
             nr = getNearest(CSB_APP.canvas, e);
@@ -847,7 +880,7 @@ function _move(e) {
             if (LOREM_IPSUM.isDown) { // if not Tool but is mousedown
                 /// draw ellipse
                 addCircleP2P(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.x2, LOREM_IPSUM.latest.y2, LOREM_IPSUM.latest.i);
-                reDraw();
+                reDraw(LOREM_IPSUM.latest.i, 1);
 
                 // Setting End Coords
                 TEXT_INFO.endCoords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
@@ -857,6 +890,7 @@ function _move(e) {
             if (LOREM_IPSUM.isDown) {
                 // Draw Line
                 drawLineP2P(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.x2, LOREM_IPSUM.latest.y2, LOREM_IPSUM.latest.i);
+                reDraw(LOREM_IPSUM.latest.i);
 
                 // Setting End Coords
                 TEXT_INFO.endCoords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
@@ -949,13 +983,6 @@ function _click(e) {
 }
 
 
-/**
- * Clears the canvas
- */
-function clearCanvas() {
-    CSB_APP.ctx.clearRect(0, 0, CSB_APP.canvas.width, CSB_APP.canvas.height);
-    return void(0);
-}
 
 
 /**
@@ -1006,7 +1033,7 @@ function _receive() {
  */
 function _keyPress(e) {
     if (!LOREM_IPSUM.isHover) return;
-    console.info(e.key);
+    if (DEBUG.enabled) console.info(e.key);
     switch (e.key) {
         case 'd': // d - Delete
         case 'D':
