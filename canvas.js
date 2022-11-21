@@ -1,3 +1,11 @@
+// noinspection SpellCheckingInspection
+
+/*
+ * Name: Canvas
+ * File: canvas.js
+ * Author: The Real Fake Admin
+ * Description: Runs the main portion of the CSB App Canvas
+ */
 Object.assign(window, {
     SETTINGS: {
 
@@ -7,8 +15,8 @@ Object.assign(window, {
         minCraterSize: 18, // Minimum crater size
         delCircleMaxDist: 25, // Maximum distance to center to delete a circle (Delete Tool)
         rszCircleThresh: 5, // Threshold (like radius) of circle resize (Edit Tool)
-        rszArrowLength: 50, // Length of the arrow that shows when resizing circle
-        rszArrowHead: 15, // Length of Arrow Head sides
+        /*rszArrowLength: 50, // Length of the arrow that shows when resizing circle
+        rszArrowHead: 15, // Length of Arrow Head sides*/
 
         /// Points
         pointRadius: 10, // Radius of the point
@@ -17,7 +25,33 @@ Object.assign(window, {
         /// Lines
         delLineMaxDist: 10, // Maximum distance to delete a line (Delete Tool)
         minLineLength: 45, // Minimum length of a line
-        endPtMaxDist: 5 // Maximum distance to select end-point (Edit Tool)
+        endPtMaxDist: 5, // Maximum distance to select end-point (Edit Tool)
+
+        // Rectangles
+        delRectangleMaxDist: 10, // Maximum distance to delete a rectangle (Delete Tool)
+        minRectangleSideLength: 5, // Minimum length of any side for a rectangle
+        minRectangleArea: 0, // Minimum area of a rectangle
+
+        // TODO : Do I make 3 objects in styles for each mode [default, selected, bad], or do I make a variable in styles for each variation [circleStroke, slctdCircleStroke, badCircleStroke]?
+        styles: { // NOT USED YET - contains the styling for each mark
+            // Circles
+            circleStroke: "",
+            circleFill: "",
+            circleLineWidth: "",
+
+            // Points
+            pointStroke: "",
+            pointFill: "",
+
+            // Lines
+            lineStroke: "",
+            lineWidth: "",
+
+            // Rectangles
+            rectangleStroke: "",
+            rectangleFill: "",
+            rectangleLineWidth: ""
+        }
 
         // --- End of Settings --- //
 
@@ -151,6 +185,122 @@ class Point {
 }
 
 
+/**
+ * Makes all rectangles standardized.
+ *
+ * @example new Rectangle(10, 12, 32, 64)
+ */
+class Rectangle {
+    /**
+     * Creates the representation of a rectangle. Used in marks array.
+     * @param {number} x1 - Point-1 X-Coord
+     * @param {number} y1 - Point-1 Y-Coord
+     * @param {number} x2 - Point-2 X-Coord
+     * @param {number} y2 - Point-2 Y-Coord
+     *
+     * @returns {{timestamp: number, type: 3, x1: number, y1: number, x2: number, y2: number, params: {x: number, y: number, width: number, height: number}, area: number}}
+     */
+    constructor(x1, y1, x2, y2) {
+        this.timestamp = Date.now();
+        this.type = 3;
+
+        this.x1 = x1;
+        this.y1 = y1;
+
+        this.x2 = x2;
+        this.y2 = y2;
+
+        this.params = {
+            x: ((x1 < x2) ? x1 : x2),
+            y: ((y1 < y2) ? y1 : y2),
+            width: (Math.abs(x1 - x2)),
+            height: (Math.abs(y1 - y2))
+        }
+        /*
+            v1     v2
+
+            v4     v3
+         */
+        let v1x, v2x, v3x, v4x, v1y, v2y, v3y, v4y;
+
+        if (x1 < x2) {
+            if (y1 < y2) { // (x1 < x2 && y1 < y2)
+                v1x = x1;
+                v1y = y2;
+
+                v2x = x2;
+                v2y = y2;
+
+                v3x = x2;
+                v3y = y1;
+
+                v4x = x1;
+                v4y = y1;
+            } else {       // (x1 < x2 && y2 < y1)
+                v1x = x1;
+                v1y = y1;
+
+                v2x = x2;
+                v2y = y1;
+
+                v3x = x2;
+                v3y = y2;
+
+                v4x = x1;
+                v4y = y2;
+            }
+        } else { // (x2 < x1)
+            if (y1 < y2) { // (x2 < x1 && y1 < y2)
+                v1x = x2;
+                v1y = y2;
+
+                v2x = x1;
+                v2y = y2;
+
+                v3x = x1;
+                v3y = y1;
+
+                v4x = x2;
+                v4y = y1;
+            } else {       // (x2 < x1 && y2 < y1)
+                v1x = x2;
+                v1y = y1;
+
+                v2x = x1;
+                v2y = y1;
+
+                v3x = x1;
+                v3y = y2;
+
+                v4x = x2;
+                v4y = y2;
+            }
+        }
+
+        this.vertices = [
+            { // v1
+                x: v1x,
+                y: v1y
+            },
+            { // v2
+                x: v2x,
+                y: v2y
+            },
+            { // v3
+                x: v3x,
+                y: v3y
+            },
+            { // v4
+                x: v4x,
+                y: v4y
+            }
+        ]
+
+        this.area = this.params.width + this.params.height;
+    }
+}
+
+
 // Setup Functions
 
 // /**
@@ -268,31 +418,14 @@ function addCirclePR(x, y, radius, index) {
         LOREM_IPSUM.marks[index] = crcl;
     else
         LOREM_IPSUM.marks.push(crcl);
+
+    LOREM_IPSUM.latest.center = {
+        x: x,
+        y: y
+    }
+
+    LOREM_IPSUM.latest.radius = radius;
 }
-
-
-// /** // TODO : Complete this
-//  * Draw resize arrow using the mouse position and the circle's index
-//  * @param {HTMLCanvasElement} canvas - Canvas element
-//  * @param {MouseEvent} e - Mouse event
-//  * @param {number} index - Index of the nearest mark
-//  */
-// function drawResizeArrowMI(canvas, e, index) {
-//
-// }
-
-
-// /**
-//  * Draw resize arrow using center point & rotation of the arrow
-//  * @param {HTMLCanvasElement} canvas - Canvas element
-//  * @param {number} x - Center-X
-//  * @param {number} y - Center-Y
-//  * @param {number} r - Rotation
-//  */
-// function drawResizeArrowCR(canvas, x, y, r) {
-//     let arw = new Path2D();
-//
-// }
 
 
 /**
@@ -359,10 +492,30 @@ function _Point2D(x, y) {
 function addPoint(x, y, index) {
     let pt = new Point(x, y);
 
-    if (typeof index === "number" && 0 <= index <= LOREM_IPSUM.marks.length) // if index is specified
+    if (typeof index === "number" && 0 <= index && index <= LOREM_IPSUM.marks.length) // if index is specified
         LOREM_IPSUM.marks[index] = pt;
     else
         LOREM_IPSUM.marks.push(pt);
+
+    return void(0);
+}
+
+
+function _Rectangle2D(x, y, width, height) {
+    let rct = new Path2D();
+    rct.rect(x, y, width, height);
+    return rct;
+}
+
+
+function addRectangleP2P(x1, y1, x2, y2, index) {
+    let rct = new Rectangle(x1, y1, x2, y2);
+
+    if (typeof index === "number" && 0 <= index) // if index is specified
+        LOREM_IPSUM.marks[index] = rct;
+    else
+        LOREM_IPSUM.marks.push(rct);
+
     return void(0);
 }
 
@@ -400,16 +553,16 @@ function reDraw(i, mode=0) { if (DEBUG.enabled) console.debug(i, mode);
                             break;
                         case 1: // Highlight Stroke
                             ctx.strokeStyle = "#fff";
-                            ctx.fillStyle = "#f8b31f33";
+                            ctx.fillStyle = "#FF00CC33"; // #f8b31f33
                             break;
                         case 2: // Highlight Fill
-                            ctx.strokeStyle = "#f8b31f";
+                            ctx.strokeStyle = "#FF33D6"; // #f8b31f
                             ctx.fillStyle = "#fff3";
                             break;
                     }
                 } else {
-                    ctx.strokeStyle = "#f8b31f";
-                    ctx.fillStyle = "#f8b31f33"; // #f8b31f33
+                    ctx.strokeStyle = "#FF33D6"; // #f8b31f
+                    ctx.fillStyle = "#FF00CC33"; // #f8b31f33
                 }
 
                 ctx.stroke(tmp);
@@ -424,7 +577,7 @@ function reDraw(i, mode=0) { if (DEBUG.enabled) console.debug(i, mode);
                 } else if (j === i) { // if Selected
                     ctx.strokeStyle = "#fffa";
                 } else {
-                    ctx.strokeStyle = "#601a4aaa"; // #5a368daa
+                    ctx.strokeStyle = "#6e35caaa"; // #5a368daa // #601a4aaa
                 }
                 ctx.closePath();
                 ctx.stroke(tmp);
@@ -435,10 +588,27 @@ function reDraw(i, mode=0) { if (DEBUG.enabled) console.debug(i, mode);
                 if (j === i) { // if Selected
                     ctx.fillStyle = "#fffa";
                 } else {
-                    ctx.fillStyle = "#ccca"; // #a77311aa
+                    ctx.fillStyle = "#ff0a"; // #a77311aa
                 }
 
                 ctx.fill(tmp, "nonzero");
+                break;
+            case 3: // Rectangle
+                tmp = _Rectangle2D(v.params.x, v.params.y, v.params.width, v.params.height);
+                ctx.lineWidth = 2;
+                if (v.params.width < SETTINGS.minRectangleSideLength || v.params.height < SETTINGS.minRectangleSideLength || v.area < SETTINGS.minRectangleArea) {
+                    ctx.strokeStyle = "#f00";
+                    ctx.fillStyle = "#f003";
+                } else if (j === i) { // if Selected
+                    ctx.strokeStyle = "#fff";
+                    ctx.fillStyle = "#fff3";
+                } else {
+                    ctx.strokeStyle = "#33FF99"; // #f8b31f
+                    ctx.fillStyle = "#00FF7F66"; // #f8b31f33
+                }
+                ctx.stroke(tmp);
+                ctx.fill(tmp, "nonzero");
+                break;
         }
     }
     return void(0);
@@ -541,7 +711,7 @@ function getNearest(canvas, e, limit=true) {
                         }
                         break;
                     default: // Arbitrary angle; The real magic
-                        let ang = (v.angle - 180), // Angle to get to 180°
+                        let ang = (v.angle - 180), // Angle to get to 18
                             pr = rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false), // Rotate to 180°
                             pf;
 
@@ -599,27 +769,35 @@ function getNearest(canvas, e, limit=true) {
  * @returns {number} - Endpoint [P1=>1, P2=>2]
  */
 function getEndPt (index, msPs) {
-    let v = LOREM_IPSUM.marks[index];
-    let pt = Infinity, // Represents which end-point is closest; 1 or 2
-        d1 = distanceCalc(msPs.x, msPs.y, v.x1, v.y1),
-        d2 = distanceCalc(msPs.x, msPs.y, v.x2, v.y2),
-        dist = Math.min(d1, d2), // Gets nearest distance
-        pn;
+    let mk = LOREM_IPSUM.marks[index];
+    let vt;
+    switch (mk.type) {
+        case 1:
+                vt = Infinity; // Represents which end-point is closest; 1 or 2
+            let d1 = distanceCalc(msPs.x, msPs.y, mk.x1, mk.y1),
+                d2 = distanceCalc(msPs.x, msPs.y, mk.x2, mk.y2),
+                dist = Math.min(d1, d2), // Gets the nearest distance
+                pn;
 
-    switch (dist) {
-        case d1:
-            pn = 1;
+            switch (dist) {
+                case d1:
+                    pn = 1;
+                    break;
+                case d2:
+                    pn = 2;
+                    break;
+            }
+
+            if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
+                vt = pn;
+            }
             break;
-        case d2:
-            pn = 2;
+        case 3:
+
             break;
     }
 
-    if (SETTINGS.endPtMaxDist >= dist) { // if close enough to end point
-        pt = pn;
-    }
-
-    return pt;
+    return vt;
 }
 
 
@@ -756,11 +934,13 @@ function _down(e) {
                     }
                     break;
                 case 1: // Line
-                    /*slctd.offset = [[(marks[nr].x1 - pos.x), (marks[nr].y1 - pos.y)], [(marks[nr].x2 - pos.x), (marks[nr].y2 - pos.y)]];*/
-                    LOREM_IPSUM.selected.endPtId = getEndPt(nr, pos);
+                    LOREM_IPSUM.selected.vertexId = getEndPt(nr, pos);
                     break;
                 case 2: // Point
                     LOREM_IPSUM.selected.offset = [(LOREM_IPSUM.marks[nr].x - pos.x), (LOREM_IPSUM.marks[nr].y - pos.y)];
+                    break;
+                case 3: // Rectangle
+                    /*LOREM_IPSUM.selected.vertexId = */
                     break;
             }
             break;
@@ -780,6 +960,9 @@ function _down(e) {
             reDraw();
             LOREM_IPSUM.latest.i++;
             break;
+        case "3": // Rectangle Tool
+            TEXT_INFO.startCoords.innerText = `[${LOREM_IPSUM.latest.x1.toFixed(0)},${LOREM_IPSUM.latest.y1.toFixed(0)}]`;
+            break
     }
     return void(0);
 }
@@ -800,11 +983,11 @@ function _move(e) {
     /// Setting Coords
     TEXT_INFO.coords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
 
-    let mk, nr, dst, x, y, x1, y1, x2, y2, skip=false;
+    let mk, nr, dst, x, y, x1, y1, x2, y2, skip=false; // Keeping skip for now, not sure if it will be needed again
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
             mk = LOREM_IPSUM.marks[LOREM_IPSUM.selected.i];
-            nr = getNearest(CSB_APP.canvas, e, false);
+            nr = LOREM_IPSUM.selected.i ?? getNearest(CSB_APP.canvas, e, false); // If none selected, use nearest
             reDraw(nr); // highlight selected
 
             if (LOREM_IPSUM.selected.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
@@ -842,7 +1025,7 @@ function _move(e) {
                 case 1: // Line
                     if (skip) return;
 
-                    switch (LOREM_IPSUM.selected.endPtId) {
+                    switch (LOREM_IPSUM.selected.vertexId) {
                         case 1:
                             x1 = pos.x;
                             y1 = pos.y;
@@ -898,6 +1081,16 @@ function _move(e) {
             break;
         case "2": // Point Tool
             break;
+        case "3": // Rectangle Tool
+            if (LOREM_IPSUM.isDown) {
+                // Draw Rectangle
+                addRectangleP2P(LOREM_IPSUM.latest.x1, LOREM_IPSUM.latest.y1, LOREM_IPSUM.latest.x2, LOREM_IPSUM.latest.y2, LOREM_IPSUM.latest.i);
+                reDraw(LOREM_IPSUM.latest.i);
+
+                // Setting End Coords
+                TEXT_INFO.endCoords.innerText = `[${LOREM_IPSUM.latest.x2},${LOREM_IPSUM.latest.y2}]`;
+            }
+            break;
         default:
             console.debug("Just another edge case, nothing to worry about!\nHere is a cookie 🍪");
             break;
@@ -944,6 +1137,13 @@ function _up(e) {
             break;
         case '2': // Point
             if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i] === undefined) return; // if mark does not exist, don't do anything
+            break;
+        case '3': // Rectangle Tool
+            if (LOREM_IPSUM.marks[LOREM_IPSUM.latest.i] === undefined) return; // if mark does not exist, don't do anything
+
+            let v = LOREM_IPSUM.marks[LOREM_IPSUM.latest.i];
+            if (v.params.width < SETTINGS.minRectangleSideLength || v.params.height < SETTINGS.minRectangleSideLength || v.area < SETTINGS.minRectangleArea)
+                delMark(LOREM_IPSUM.latest.i);
             break;
     }
 
@@ -1060,6 +1260,13 @@ function _keyPress(e) {
             e.preventDefault();
             document.querySelector('#editTool').click();
             break;
+        case 'r':
+        case 'R':
+            e.preventDefault();
+            document.querySelector('#rectangleTool').click();
+            break;
+        default:
+            return;
     }
 }
 

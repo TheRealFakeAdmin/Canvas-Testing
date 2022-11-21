@@ -50,10 +50,16 @@
                 <input type="radio" id="lineTool" name="tool" value="1">
                 <label for="lineTool"><u>L</u>ine Tool</label><br>
                 <input type="radio" id="pointTool" name="tool" value="2">
-                <label for="pointTool"><u>P</u>oint Tool</label>
+                <label for="pointTool"><u>P</u>oint Tool</label><br>
+                <input type="radio" id="rectangleTool" name="tool" value="3">
+                <label for="rectangleTool"><u>R</u>ectangle Tool</label>
             </div>
         </div>
 
         <script src="canvas.js"></script>
+        <!--<script type="text/javascript">
+            <?php /*include 'test.js';
+                  include 'canvas.js' */?>
+        </script>-->
     </body>
 </html>
