@@ -1,11 +1,12 @@
 // noinspection SpellCheckingInspection
-
 /*
  * Name: Canvas
  * File: canvas.js
  * Author: The Real Fake Admin
  * Description: Runs the main portion of the CSB App Canvas
  */
+// NOTE FOR ALL FUTURE DEVELOPERS : The Y-Axis is inverted (top-to-bottom),
+//  the X-Axis still goes the common direction (right-to-left)!!!
 Object.assign(window, {
     SETTINGS: {
 
@@ -13,10 +14,9 @@ Object.assign(window, {
 
         /// Circles / Craters
         minCraterSize: 18, // Minimum crater size
-        delCircleMaxDist: 25, // Maximum distance to center to delete a circle (Delete Tool)
         rszCircleThresh: 5, // Threshold (like radius) of circle resize (Edit Tool)
-        /*rszArrowLength: 50, // Length of the arrow that shows when resizing circle
-        rszArrowHead: 15, // Length of Arrow Head sides*/
+        delCircleDistThresh: 5, // Maximum distance to center to delete a circle (Delete Tool)
+
 
         /// Points
         pointRadius: 10, // Radius of the point
@@ -31,6 +31,8 @@ Object.assign(window, {
         delRectangleMaxDist: 10, // Maximum distance to delete a rectangle (Delete Tool)
         minRectangleSideLength: 5, // Minimum length of any side for a rectangle
         minRectangleArea: 0, // Minimum area of a rectangle
+        maxVertexDistance: 10, // Maximum distance to vertex (Edit Tool)
+        maxRectangleSideDist: 10, // Maximum distance to move rectangle (Edit Tool)
 
         // TODO : Do I make 3 objects in styles for each mode [default, selected, bad], or do I make a variable in styles for each variation [circleStroke, slctdCircleStroke, badCircleStroke]?
         styles: { // NOT USED YET - contains the styling for each mark
@@ -87,7 +89,8 @@ Object.assign(window, {
         }, // Latest information data, used for text bellow canvas
         isDown: false, // True when mouse is down over canvas
         isHover: false // True when mouse hovers over canvas
-    }
+    },
+    MARKS: new Map()
 });
 
 
@@ -217,67 +220,71 @@ class Rectangle {
             height: (Math.abs(y1 - y2))
         }
         /*
-            v1     v2
+            v0     v1
 
-            v4     v3
+            v3     v2
          */
-        let v1x, v2x, v3x, v4x, v1y, v2y, v3y, v4y;
+        let v0x, v1x, v2x, v3x, v0y, v1y, v2y, v3y;
 
         if (x1 < x2) {
-            if (y1 < y2) { // (x1 < x2 && y1 < y2)
-                v1x = x1;
+            if (y1 > y2) { // (x1 < x2 && y1 < y2)
+                v0x = x1;
+                v0y = y2;
+
+                v1x = x2;
                 v1y = y2;
-
-                v2x = x2;
-                v2y = y2;
-
-                v3x = x2;
-                v3y = y1;
-
-                v4x = x1;
-                v4y = y1;
-            } else {       // (x1 < x2 && y2 < y1)
-                v1x = x1;
-                v1y = y1;
 
                 v2x = x2;
                 v2y = y1;
 
-                v3x = x2;
-                v3y = y2;
+                v3x = x1;
+                v3y = y1;
+            } else {       // (x1 < x2 && y2 < y1)
+                v0x = x1;
+                v0y = y1;
 
-                v4x = x1;
-                v4y = y2;
+                v1x = x2;
+                v1y = y1;
+
+                v2x = x2;
+                v2y = y2;
+
+                v3x = x1;
+                v3y = y2;
             }
         } else { // (x2 < x1)
-            if (y1 < y2) { // (x2 < x1 && y1 < y2)
-                v1x = x2;
+            if (y1 > y2) { // (x2 < x1 && y1 < y2)
+                v0x = x2;
+                v0y = y2;
+
+                v1x = x1;
                 v1y = y2;
-
-                v2x = x1;
-                v2y = y2;
-
-                v3x = x1;
-                v3y = y1;
-
-                v4x = x2;
-                v4y = y1;
-            } else {       // (x2 < x1 && y2 < y1)
-                v1x = x2;
-                v1y = y1;
 
                 v2x = x1;
                 v2y = y1;
 
-                v3x = x1;
-                v3y = y2;
+                v3x = x2;
+                v3y = y1;
+            } else {       // (x2 < x1 && y2 < y1)
+                v0x = x2;
+                v0y = y1;
 
-                v4x = x2;
-                v4y = y2;
+                v1x = x1;
+                v1y = y1;
+
+                v2x = x1;
+                v2y = y2;
+
+                v3x = x2;
+                v3y = y2;
             }
         }
 
         this.vertices = [
+            { // v0
+                x: v0x,
+                y: v0y
+            },
             { // v1
                 x: v1x,
                 y: v1y
@@ -289,11 +296,51 @@ class Rectangle {
             { // v3
                 x: v3x,
                 y: v3y
-            },
-            { // v4
-                x: v4x,
-                y: v4y
             }
+        ]
+
+        let v = this.vertices;
+        this.lines = [
+            [
+                {
+                    x: v[0].x,
+                    y: v[0].y
+                },
+                {
+                    x: v[1].x,
+                    y: v[1].y
+                }
+            ],
+            [
+                {
+                    x: v[1].x,
+                    y: v[1].y
+                },
+                {
+                    x: v[2].x,
+                    y: v[2].y
+                }
+            ],
+            [
+                {
+                    x: v[2].x,
+                    y: v[2].y
+                },
+                {
+                    x: v[3].x,
+                    y: v[3].y
+                }
+            ],
+            [
+                {
+                    x: v[3].x,
+                    y: v[3].y
+                },
+                {
+                    x: v[0].x,
+                    y: v[0].y
+                }
+            ]
         ]
 
         this.area = this.params.width + this.params.height;
@@ -641,10 +688,10 @@ function delLastMark() {
  * Calculates the distance of all marks to the mouse cursor then returns the index of the nearest mark.
  * @param {HTMLCanvasElement} canvas - Target Canvas
  * @param {MouseEvent} e - Mouse Event
- * @param {boolean} [limit] - If false, circle max distance is `radius+SETTINGS.rszCircleThresh`
+ * @param {number} [limit] - If 1, circle max distance is `radius+SETTINGS.rszCircleThresh`; If 2, only outlines
  * @returns {number} - Index of the nearest mark
  */
-function getNearest(canvas, e, limit=true) {
+function getNearest(canvas, e, limit=1) {console.debug(`getNearest(${JSON.stringify(canvas)}, ${JSON.stringify(e)}, ${limit})`);
     let tempDist,                    // Temporary distance
         best = Infinity,
         bestDist = Infinity, // Best Mark, Best Distance
@@ -653,7 +700,7 @@ function getNearest(canvas, e, limit=true) {
         x0 = msPs.x,
         y0 = msPs.y,
 
-        x, y;
+        x, y, x1, y1, x2, y2;
 
     LOREM_IPSUM.marks.forEach((v, i) => {
         switch (v.type) { // Go by type of mark [0: Circle; 1: Line; 2: Point]
@@ -662,16 +709,27 @@ function getNearest(canvas, e, limit=true) {
                 y = v.y;
                 tempDist = distanceCalc(x, y, x0, y0);
 
-                if (bestDist >= tempDist && (v.r + (limit ? 0 : SETTINGS.rszCircleThresh)) >= tempDist && tempDist <= (limit ? SETTINGS.delCircleMaxDist : v.r + SETTINGS.rszCircleThresh)) { // closer or equal to last best & no further than radius
-                    bestDist = tempDist;
-                    best = i;
+                switch (limit) {
+                    case 0: // Default | Outer Circle Selection Only
+                        let bst = Math.abs(tempDist - v.r);
+                        if (bestDist >= bst && (v.r + SETTINGS.delCircleDistThresh) >= tempDist && (v.r - SETTINGS.delCircleDistThresh) <= tempDist) { // closer or equal to last best & no further than radius
+                            bestDist = bst;
+                            best = i;
+                        }
+                        break;
+                    case 1: // Full circle selection + rszThresh
+                        if (bestDist >= tempDist && (v.r + SETTINGS.rszCircleThresh) >= tempDist && tempDist <= (v.r + SETTINGS.rszCircleThresh)) { // closer or equal to last best & no further than radius
+                            bestDist = tempDist;
+                            best = i;
+                        }
+                        break;
                 }
                 break;
             case 1: // Line
-                let x1 = v.x1, // End-Point 1
-                    y1 = v.y1,
-                    x2 = v.x2, // End-Point 2
-                    y2 = v.y2;
+                x1 = v.x1; // End-Point 1
+                y1 = v.y1;
+                x2 = v.x2; // End-Point 2
+                y2 = v.y2;
 
                 switch (v.angle) { // Line-Angle going clockwise starting at 3 o'clock == 0
                     case 180: // - same-y
@@ -755,6 +813,71 @@ function getNearest(canvas, e, limit=true) {
                     best = i;
                 }
                 break;
+            case 3: // Rectangle
+                let l = v.lines,
+                    td,
+                    b = Infinity,
+                    bd = Infinity;
+
+                for (let j = 0; j < l.length; j++) {
+                    let ln = l[j];
+                    x1 = ln[0].x;
+                    y1 = ln[0].y;
+                    x2 = ln[1].x;
+                    y2 = ln[1].y;
+
+                    switch (j) {
+                        case 0: // AB ->
+                            if (x0 <= x1) {
+                                td = distanceCalc(x0, y0, x1, y1);
+                            } else if (x0 >= x2) {
+                                td = distanceCalc(x0, y0, x2, y2);
+                            } else {
+                                td = distanceCalc(x0, y0, x0, y1);
+                            }
+                            break;
+                        case 1: // DA |v
+                            if (y0 <= y1) {
+                                td = distanceCalc(x0, y0, x1, y1);
+                            } else if (y0 >= y2) {
+                                td = distanceCalc(x0, y0, x2, y2);
+                            } else {
+                                td = distanceCalc(x0, y0, x1, y0);
+                            }
+                            break;
+                        case 2: // CD <-
+                            if (x0 >= x1) {
+                                td = distanceCalc(x0, y0, x1, y1);
+                            } else if (x0 <= x2) {
+                                td = distanceCalc(x0, y0, x2, y2);
+                            } else {
+                                td = distanceCalc(x0, y0, x0, y1);
+                            }
+                            break;
+                        case 3: // BC |^
+                            if (y0 >= y1) {
+                                td = distanceCalc(x0, y0, x1, y1);
+                            } else if (y0 <= y2) {
+                                td = distanceCalc(x0, y0, x2, y2);
+                            } else {
+                                td = distanceCalc(x0, y0, x1, y0);
+                            }
+                            break;
+                    }
+
+
+                    if (bd >= td && SETTINGS.maxRectangleSideDist >= td) { // closer than last best & no further than radius
+                        bd = td;
+                        b = i;
+                    }
+                    console.debug(bd, b, td);
+                }
+
+                if (bestDist >= bd && SETTINGS.delPointMaxDist >= bd) { // closer than last best & no further than radius
+                    bestDist = bd;
+                    best = i;
+                }
+                break;
         }
     })
 
@@ -770,14 +893,14 @@ function getNearest(canvas, e, limit=true) {
  */
 function getEndPt (index, msPs) {
     let mk = LOREM_IPSUM.marks[index];
-    let vt;
+    let vt = Infinity, dist,
+        x0 = msPs.x, y0 = msPs.y;
     switch (mk.type) {
-        case 1:
-                vt = Infinity; // Represents which end-point is closest; 1 or 2
-            let d1 = distanceCalc(msPs.x, msPs.y, mk.x1, mk.y1),
-                d2 = distanceCalc(msPs.x, msPs.y, mk.x2, mk.y2),
-                dist = Math.min(d1, d2), // Gets the nearest distance
+        case 1: // Line // Represents which end-point is closest; 1 or 2
+            let d1 = distanceCalc(x0, y0, mk.x1, mk.y1),
+                d2 = distanceCalc(x0, y0, mk.x2, mk.y2),
                 pn;
+                dist = Math.min(d1, d2); // Gets the nearest distance
 
             switch (dist) {
                 case d1:
@@ -792,8 +915,33 @@ function getEndPt (index, msPs) {
                 vt = pn;
             }
             break;
-        case 3:
+        case 3: // Rectangle
+            let v = mk.vertices,
+                v0d = distanceCalc(x0, y0, v[0].x, v[0].y), // Distances of different vertices
+                v1d = distanceCalc(x0, y0, v[1].x, v[1].y),
+                v2d = distanceCalc(x0, y0, v[2].x, v[2].y),
+                v3d = distanceCalc(x0, y0, v[3].x, v[3].y),
+                vn;
+                dist = Math.min(v0d, v1d, v2d, v3d); // Returns the nearest vertex
 
+            switch (dist) {
+                case v0d:
+                    vn = 0;
+                    break;
+                case v1d:
+                    vn = 1;
+                    break;
+                case v2d:
+                    vn = 2;
+                    break;
+                case v3d:
+                    vn = 3;
+                    break;
+            }
+
+            if (dist <= SETTINGS.maxVertexDistance) { // if close enough to vertex
+                vt = vn;
+            }
             break;
     }
 
@@ -919,7 +1067,7 @@ function _down(e) {
     let nr;
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
-            if ((nr = getNearest(CSB_APP.canvas, e, false)) === Infinity) break;
+            if ((nr = getNearest(CSB_APP.canvas, e)) === Infinity) break;
 
             LOREM_IPSUM.selected.i = nr;
             switch (LOREM_IPSUM.marks[nr].type) {
@@ -940,12 +1088,36 @@ function _down(e) {
                     LOREM_IPSUM.selected.offset = [(LOREM_IPSUM.marks[nr].x - pos.x), (LOREM_IPSUM.marks[nr].y - pos.y)];
                     break;
                 case 3: // Rectangle
-                    /*LOREM_IPSUM.selected.vertexId = */
+                    LOREM_IPSUM.selected.vertexId = getEndPt(LOREM_IPSUM.selected.i, pos);
+                    switch (LOREM_IPSUM.selected.vertexId) {
+                        case 0: // Top-Left Vertex
+                            LOREM_IPSUM.selected.x2 = LOREM_IPSUM.marks[nr].vertices[2].x; // Opposite Vertex
+                            LOREM_IPSUM.selected.y2 = LOREM_IPSUM.marks[nr].vertices[2].y;
+                            break;
+                        case 1: // Top-Right Vertex
+                            LOREM_IPSUM.selected.x2 = LOREM_IPSUM.marks[nr].vertices[3].x; // Opposite Vertex
+                            LOREM_IPSUM.selected.y2 = LOREM_IPSUM.marks[nr].vertices[3].y;
+                            break;
+                        case 2: // Bottom-Right Vertex
+                            LOREM_IPSUM.selected.x2 = LOREM_IPSUM.marks[nr].vertices[0].x; // Opposite Vertex
+                            LOREM_IPSUM.selected.y2 = LOREM_IPSUM.marks[nr].vertices[0].y;
+                            break;
+                        case 3: // Bottom-Left Vertex
+                            LOREM_IPSUM.selected.x2 = LOREM_IPSUM.marks[nr].vertices[1].x; // Opposite Vertex
+                            LOREM_IPSUM.selected.y2 = LOREM_IPSUM.marks[nr].vertices[1].y;
+                            break;
+                        default: // Infinity / Move Mode
+                            LOREM_IPSUM.selected.offset = [
+                                [(LOREM_IPSUM.marks[nr].x1 - pos.x), (LOREM_IPSUM.marks[nr].y1 - pos.y)],
+                                [(LOREM_IPSUM.marks[nr].x2 - pos.x), (LOREM_IPSUM.marks[nr].y2 - pos.y)]
+                            ];
+                            break;
+                    }
                     break;
             }
             break;
         case "-1": // Delete Tool
-            nr = getNearest(CSB_APP.canvas, e);
+            nr = getNearest(CSB_APP.canvas, e, 0);
             delMark(nr);
             return void(0);
         case "0": // Circle Tool
@@ -987,7 +1159,7 @@ function _move(e) {
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-2": // Edit Tool
             mk = LOREM_IPSUM.marks[LOREM_IPSUM.selected.i];
-            nr = LOREM_IPSUM.selected.i ?? getNearest(CSB_APP.canvas, e, false); // If none selected, use nearest
+            nr = LOREM_IPSUM.selected.i ?? getNearest(CSB_APP.canvas, e); // If none selected, use nearest
             reDraw(nr); // highlight selected
 
             if (LOREM_IPSUM.selected.i === undefined || mk === undefined) return; // if no selected index/mark exists, return
@@ -1052,11 +1224,35 @@ function _move(e) {
                     addPoint(x, y, LOREM_IPSUM.selected.i);
                     reDraw(nr); // highlight selected
                     break;
+                case 3: // Rectangle
+                    x = pos.x;
+                    y = pos.y;
+
+                    switch (LOREM_IPSUM.selected.vertexId) {
+                        case Infinity: // Infinity / Move Mode
+                            let o = LOREM_IPSUM.selected.offset;
+
+                            x1 = (x + o[0][0]);
+                            y1 = (y + o[0][1]);
+                            x2 = (x + o[1][0]);
+                            y2 = (y + o[1][1]);
+
+                            addRectangleP2P(x1, y1, x2, y2, nr);
+                            reDraw(nr);
+                            break;
+                        default: // Vertex Selection
+                            x2 = LOREM_IPSUM.selected.x2; // Opposite Vertex
+                            y2 = LOREM_IPSUM.selected.y2;
+
+                            addRectangleP2P(x, y, x2, y2, nr);
+                            reDraw(nr);
+                            break;
+                    }
             }
             //reDraw(LOREM_IPSUM.selected.i);
             break;
         case "-1": // Delete Tool
-            nr = getNearest(CSB_APP.canvas, e);
+            nr = getNearest(CSB_APP.canvas, e, 0);
             reDraw(nr); // highlight selected
             break;
         case "0": // Circle Tool
@@ -1122,6 +1318,11 @@ function _up(e) {
                     if (LOREM_IPSUM.marks[LOREM_IPSUM.selected.i].length < SETTINGS.minLineLength)
                         delMark(LOREM_IPSUM.selected.i);
                     break;
+                case 3: // Rectangle
+                    let v = LOREM_IPSUM.marks[LOREM_IPSUM.selected.i];
+                    if (v.params.width < SETTINGS.minRectangleSideLength || v.params.height < SETTINGS.minRectangleSideLength || v.area < SETTINGS.minRectangleArea)
+                        delMark(LOREM_IPSUM.selected.i);
+                    break;
             }
             LOREM_IPSUM.selected = {};
             break;
@@ -1173,9 +1374,17 @@ function _click(e) {
 
     switch (document.querySelector('input[type=radio][name=tool]:checked').value) {
         case "-1": // Delete Tool
-        case "-2":
-            let nr = getNearest(CSB_APP.canvas, e);
-            reDraw(nr); // highlight selected
+            if (e.target.id === "canvas") {
+                let nr = getNearest(CSB_APP.canvas, e, 0);
+                reDraw(nr); // highlight selected
+            }
+            LOREM_IPSUM.selected = {};
+            break;
+        case "-2": // Edit Tool
+            if (e.target.id === "canvas") {
+                let nr = getNearest(CSB_APP.canvas, e);
+                reDraw(nr); // highlight selected
+            }
             LOREM_IPSUM.selected = {};
             break;
     }
