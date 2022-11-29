@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <title>Canvas Testing</title>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="favicon.png" type="image/png">
         <style>
             body {
                 -webkit-user-select: none;
@@ -12,8 +12,11 @@
                 user-select: none;
             }
             #canvas {
-                background: url("images/moon-tutorial-2.png");
+                background: url("images/00181.png");
                 background-size: 100%;
+            }
+            #canvas:hover {
+                cursor: crosshair;
             }
         </style>
     </head>

@@ -1,12 +1,14 @@
-// noinspection SpellCheckingInspection
 /*
  * Name: Canvas
  * File: canvas.js
  * Author: The Real Fake Admin
  * Description: Runs the main portion of the CSB App Canvas
+ *
+ * NOTE FOR ALL FUTURE DEVELOPERS : The Y-Axis is inverted (top-to-bottom),
+ *  the X-Axis still goes the common direction (right-to-left)!!!
+ *  [0,0] is Top-Right
  */
-// NOTE FOR ALL FUTURE DEVELOPERS : The Y-Axis is inverted (top-to-bottom),
-//  the X-Axis still goes the common direction (right-to-left)!!!
+
 Object.assign(window, {
     SETTINGS: {
 
