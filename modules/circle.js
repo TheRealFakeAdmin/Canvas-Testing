@@ -1,5 +1,7 @@
 import { distanceCalc } from './temp.js';
 
+let Settings;
+
 // Setup Class
 
 /**
@@ -16,7 +18,7 @@ class Circle {
      */
     constructor(x, y, radius) {
         this.timestamp = Date.now();
-        this.type = 0
+        this.type = 0;
 
         this.x = x;
         this.y = y;
@@ -91,9 +93,13 @@ function addCirclePR(x, y, radius, index) {
     LOREM_IPSUM.latest.radius = radius;
 }
 
+
+console.log(SETTINGS);
+
+
 MARKS.set('Circle', {
     type: 0,
-    class: Circle,
+    Class: Circle,
     priv: _Circle2D,
     addP2P: addCircleP2P,
     addPR: addCircleP2P

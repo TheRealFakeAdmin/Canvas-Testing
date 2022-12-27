@@ -4,21 +4,7 @@
         <meta charset="UTF-8" />
         <title>Canvas Testing</title>
         <link rel="icon" href="favicon.png" type="image/png">
-        <style>
-            body {
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-            }
-            #canvas {
-                background: url("images/00181.png");
-                background-size: 100%;
-            }
-            #canvas:hover {
-                cursor: crosshair;
-            }
-        </style>
+        <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
 
@@ -44,18 +30,30 @@
             <!--<input type="checkbox" id="delTool"><label for="delTool"> Delete Tool</label>-->
             <div>
                 <p>Select tool:</p>
-                <input type="radio" id="editTool" name="tool" value="-2">
-                <label for="editTool"><u>E</u>dit Tool</label><br>
-                <input type="radio" id="delTool" name="tool" value="-1">
-                <label for="delTool"><u>D</u>elete Tool</label><br>
-                <input checked="checked" type="radio" id="circleTool" name="tool" value="0">
-                <label for="circleTool"><u>C</u>ircle Tool</label><br>
-                <input type="radio" id="lineTool" name="tool" value="1">
-                <label for="lineTool"><u>L</u>ine Tool</label><br>
-                <input type="radio" id="pointTool" name="tool" value="2">
-                <label for="pointTool"><u>P</u>oint Tool</label><br>
-                <input type="radio" id="rectangleTool" name="tool" value="3">
-                <label for="rectangleTool"><u>R</u>ectangle Tool</label>
+                <label>
+                    <input type="radio" id="editTool" name="tool" value="-2">
+                    <img src="images/icons/NewIcons-09-onLight.png" title="Edit" alt="Edit Tool">
+                </label>
+                <label>
+                    <input type="radio" id="delTool" name="tool" value="-1">
+                    <img src="images/icons/NewIcons-01-eraser.png" title="Delete" alt="Delete Tool">
+                </label>
+                <label>
+                    <input checked="checked" type="radio" id="circleTool" name="tool" value="0">
+                    <img src="images/icons/NewIcons-06-Crater.png" title="Crater" alt="Crater Tool">
+                </label>
+                <label>
+                    <input type="radio" id="lineTool" name="tool" value="1">
+                    <img src="images/icons/NewIcons-08-craterchain.png" title="Line" alt="Line Tool">
+                </label>
+                <label>
+                    <input type="radio" id="pointTool" name="tool" value="2">
+                    <img src="images/icons/NewIcons-12-rocks.png" title="Point" alt="Point Tool">
+                </label>
+                <label>
+                    <input type="radio" id="rectangleTool" name="tool" value="3">
+                    <img src="images/icons/NewIcons-17-asteroids.png" title="Rectangle" alt="Rectangle Tool">
+                </label>
             </div>
         </div>
 

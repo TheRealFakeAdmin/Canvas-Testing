@@ -1,0 +1,35 @@
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+#canvas {
+    background: url("images/00181.png");
+    background-size: 100%;
+}
+
+#canvas:hover {
+    cursor: crosshair;
+}
+
+/* src: https://stackoverflow.com/a/17541916 */
+/* HIDE RADIO */
+[type=radio] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* IMAGE STYLES */
+[type=radio] + img {
+    cursor: pointer;
+    height: 2.5rem;
+}
+
+/* CHECKED STYLES */
+[type=radio]:checked + img {
+    background-color: #868686;
+}

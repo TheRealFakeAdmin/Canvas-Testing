@@ -58,9 +58,9 @@ function addPoint(x, y, index) {
 
 MARKS.set('Point', {
     type: 2,
-    class: Point,
+    Class: Point,
     priv: _Point2D,
-    add: addPoint
+    addPt: addPoint
 })
 
 

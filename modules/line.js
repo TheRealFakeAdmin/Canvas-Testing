@@ -82,7 +82,7 @@ function drawLineP2P(x1, y1, x2, y2, index) {
 
 MARKS.set('Line', {
     type: 1,
-    class: Line,
+    Class: Line,
     priv: _Line2D,
     addP2P: drawLineP2P
 })

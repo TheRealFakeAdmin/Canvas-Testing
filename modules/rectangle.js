@@ -181,7 +181,7 @@ function addRectangleP2P(x1, y1, x2, y2, index) {
 
 MARKS.set('Rectangle', {
     type: 3,
-    class: Rectangle,
+    Class: Rectangle,
     priv: _Rectangle2D,
     addP2P: addRectangleP2P
 })
