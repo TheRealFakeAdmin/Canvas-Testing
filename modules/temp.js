@@ -246,31 +246,22 @@ function getNearest(canvas, e, limit=1) {
                     default: // Arbitrary angle; The real magic
                         let ang = (v.angle - 180), // Angle to get to 18
                             pr = rotateAxis([[x0,y0], [x1,y1], [x2,y2]], ang, false), // Rotate to 180°
-                            pf;
-
-                        let rx0 = pr[0][0], // Save new point values
-                            rx1 = pr[1][0],
+                            
+                            // Save new point values
+                            rx0 = pr[0][0], // Rotated Point 0 [Mouse]
+                            ry0 = pr[0][1],
+                            rx1 = pr[1][0], // Rotated Point 1 [P1]
                             ry1 = pr[1][1],
-                            rx2 = pr[2][0],
+                            rx2 = pr[2][0], // Rotated Point 2 [P2]
                             ry2 = pr[2][1];
 
-                        ang *= -1; // Angle to undo rotation to 180°
-
-                        if (rx0 <= rx1) { // Mirror of case 180
-                            pf = [x1,y1];
+                        if (rx0 <= rx1) {
+                            tempDist = distanceCalc(rx0, ry0, rx1, ry1);
                         } else if (rx0 >= rx2) {
-                            pf = [x2,y2];
+                            tempDist = distanceCalc(rx0, ry0, rx2, ry2);
                         } else {
-                            pf = rotateAxis([[rx0,ry1]], ang, false)[0];
+                            tempDist = distanceCalc(rx0, ry0, rx0, ry1);
                         }
-
-                        if (DEBUG.enabled === true && i === 0) { // debug for visualizing the first line
-                            drawLineP2P(rx1,ry1,rx2,ry2, 1);
-                            addPoint(pf[0], pf[1], 2);
-                            addPoint(x0, y0, 3);
-                        }
-
-                        tempDist = distanceCalc(x0, y0, pf[0], pf[1]);
                         break;
                 }
                 if (bestDist >= tempDist && SETTINGS.delLineMaxDist >= tempDist) { // closer than last best & no further than radius
